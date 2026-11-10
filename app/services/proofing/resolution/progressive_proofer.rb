@@ -229,7 +229,9 @@ module Proofing
         residential_address_resolution_result = residential_address_plugin(vendor).call(
           applicant_pii:, current_sp:, ipp_enrollment_in_progress:, timer:,
         )
-        state_id_address_resolution_result = state_id_address_plugin(vendor).call(
+        state_id_address_resolution_result = state_id_address_plugin(
+          vendor, document_type: applicant_pii[:document_type_received]
+        ).call(
           applicant_pii:, current_sp:, ipp_enrollment_in_progress:, timer:,
           residential_address_resolution_result:
         )
@@ -268,18 +270,18 @@ module Proofing
         )
       end
 
-      def state_id_address_plugin(vendor = proofing_vendor)
+      def state_id_address_plugin(vendor = proofing_vendor, document_type: nil)
         @state_id_address_plugins ||= {}
         @state_id_address_plugins[vendor] ||= Plugins::StateIdAddressPlugin.new(
-          proofer: create_proofer(vendor),
+          proofer: create_proofer(vendor, document_type:),
           sp_cost_token: sp_cost_token(vendor),
         )
       end
 
-      def create_proofer(vendor = proofing_vendor)
+      def create_proofer(vendor = proofing_vendor, document_type: nil)
         case vendor
-        when :instant_verify then create_instant_verify_proofer
-        when :instant_verify_ddp then create_instant_verify_ddp_proofer
+        when :instant_verify then create_instant_verify_proofer(document_type:)
+        when :instant_verify_ddp then create_instant_verify_ddp_proofer(document_type:)
         when :mock then create_mock_proofer
         when :socure_kyc then create_socure_proofer
         else
@@ -287,8 +289,8 @@ module Proofing
         end
       end
 
-      def create_instant_verify_proofer
-        Proofing::LexisNexis::InstantVerify::Proofer.new(
+      def create_instant_verify_proofer(document_type: nil)
+        proofer = Proofing::LexisNexis::InstantVerify::Proofer.new(
           LexisNexis::Config.new(
             instant_verify_workflow: IdentityConfig.store.lexisnexis_instant_verify_workflow,
             account_id: IdentityConfig.store.lexisnexis_account_id,
@@ -301,15 +303,33 @@ module Proofing
           ),
           @analytics,
         )
+
+        # Wrap the proofer with bypass behavior if the document type is mDL
+        if mdl_bypasses_enabled? && document_type == Idp::Constants::DocumentTypes::MDL
+          proofer = LexisNexis::Decorators::InstantVerify::WithMdlBypasses.new(proofer)
+        end
+
+        proofer
       end
 
-      def create_instant_verify_ddp_proofer
-        Proofing::LexisNexis::Ddp::Proofers::InstantVerifyProofer.new(
+      def create_instant_verify_ddp_proofer(document_type: nil)
+        proofer = Proofing::LexisNexis::Ddp::Proofers::InstantVerifyProofer.new(
           api_key: IdentityConfig.store.lexisnexis_threatmetrix_api_key,
           org_id: IdentityConfig.store.lexisnexis_threatmetrix_org_id,
           base_url: IdentityConfig.store.lexisnexis_threatmetrix_base_url,
           ddp_policy: IdentityConfig.store.lexisnexis_instant_verify_ddp_policy,
         )
+
+        # Wrap the proofer with bypass behavior if the document type is mDL
+        if mdl_bypasses_enabled? && document_type == Idp::Constants::DocumentTypes::MDL
+          proofer = LexisNexis::Decorators::InstantVerify::WithMdlBypasses.new(proofer)
+        end
+
+        proofer
+      end
+
+      def mdl_bypasses_enabled?
+        IdentityConfig.store.idv_lexis_nexis_instant_verify_mdl_bypass_error_codes.present?
       end
 
       def create_mock_proofer
