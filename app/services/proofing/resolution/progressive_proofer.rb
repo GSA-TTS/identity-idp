@@ -162,16 +162,13 @@ module Proofing
           )
           break unless failover_available
 
-          adjudicator = ResultAdjudicator.new(
+          decision = ResolutionDecision.new(
             **resolution,
             applicant_pii:,
             ipp_enrollment_in_progress:,
             ipp_current_address_matches_id: applicant_pii[:ipp_current_address_matches_id],
-            phone_result: {},
-            precheck_phone_number: nil,
-            device_profiling_result: nil,
           )
-          break if adjudicator.resolution_success?
+          break if decision.success?
         end
         resolution.merge(resolution_attempts: attempts, failover_available:)
       end
