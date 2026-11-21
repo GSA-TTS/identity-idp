@@ -1,0 +1,33 @@
+# We need this because after moving to the GSA-TTS org,
+# the timing on the webhooks seems to have changed for reasons
+# we don't know.  The pull_request.synchronize webhook comes
+# too quickly or something, and thus no pipeline is created in
+# gitlab.  This causes the webhook to be sent again, which
+# actually triggers the pipeline.
+#
+# Be sure to remove this and turn off github actions in github
+# and delete the GITLAB_MIRROR_WEBHOOK_URL secret
+# once we are done with this.  This is kinda a hack to get
+# us working.
+#
+name: Trigger GitLab External PR Pipeline
+on:
+  pull_request:
+    types: [synchronize]
+
+jobs:
+  notify-gitlab:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for GitLab pull mirror sync
+        run: sleep 5
+
+      - name: Forward pull_request event to GitLab
+        env:
+          GITLAB_WEBHOOK_URL: ${{ secrets.GITLAB_MIRROR_WEBHOOK_URL }}
+        run: |
+          curl -sS -X POST "$GITLAB_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -H "X-GitHub-Event: pull_request" \
+            --data-binary @"$GITHUB_EVENT_PATH"
+
