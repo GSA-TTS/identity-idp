@@ -60,13 +60,12 @@ module Proofing
       end
 
       def adjudicated_result
-        resolution_success, resolution_reason = resolution_result_and_reason
         device_profiling_success, device_profiling_reason = device_profiling_result_and_reason
         hybrid_mobile_profiling_success, hybrid_mobile_profiling_reason =
           hybrid_mobile_device_profiling_result_and_reason
 
         FormResponse.new(
-          success: resolution_success && device_profiling_success &&
+          success: resolution_decision.success? && device_profiling_success &&
                    hybrid_mobile_profiling_success,
           errors: errors,
           extra: {
@@ -79,7 +78,7 @@ module Proofing
             context: {
               device_profiling_adjudication_reason: device_profiling_reason,
               hybrid_mobile_device_profiling_adjudication_reason: hybrid_mobile_profiling_reason,
-              resolution_adjudication_reason: resolution_reason,
+              resolution_adjudication_reason: resolution_decision.reason,
               stages: {
                 resolution: resolution_stage(resolution_result, :resolution_result),
                 residential_address: resolution_stage(
@@ -96,10 +95,22 @@ module Proofing
       end
 
       def resolution_success?
-        resolution_result_and_reason.first
+        resolution_decision.success?
       end
 
       private
+
+      def resolution_decision
+        @resolution_decision ||= ResolutionDecision.new(
+          resolution_result:,
+          residential_resolution_result:,
+          ipp_enrollment_in_progress:,
+          ipp_current_address_matches_id:,
+          applicant_pii:,
+          proofing_vendor:,
+          resolution_bypassed:,
+        )
+      end
 
       # The deciding attempt stays at the top level of the stage, unchanged. Failover details are
       # added alongside it, listing only the vendors called for this stage. Without attempt data
@@ -187,53 +198,6 @@ module Proofing
         end
       end
 
-      def resolution_result_and_reason
-        # This branch is IPP-specific: only the in-person flow resolves a separate
-        # residential address (ResidentialAddressPlugin returns an automatic success
-        # when not in IPP). When the residential address differs from the ID address
-        # and its resolution fails, fail here rather than crediting the state-ID
-        # (document) address resolution. This does not apply to non-IPP flows because
-        # they never run a separate residential resolution.
-        if ipp_enrollment_in_progress && !residential_resolution_result.success? &&
-           ipp_current_address_matches_id == false
-          [false, :fail_resolution_skip_state_id]
-        elsif resolution_bypassed
-          [true, :instant_verify_bypass]
-        elsif resolution_result.success?
-          [true, :pass_resolution_and_state_id]
-        elsif state_id_attributes_cover_resolution_failures?
-          [true, :state_id_covers_failed_resolution]
-        else
-          [false, :fail_resolution_without_state_id_coverage]
-        end
-      end
-
-      def state_id_attributes_cover_resolution_failures?
-        return false unless get_to_yes_enabled_for_vendor?
-        return false unless resolution_result.failed_result_can_pass_with_additional_verification?
-
-        failed_resolution_attributes =
-          resolution_result.attributes_requiring_additional_verification
-        (failed_resolution_attributes.to_a - passed_state_id_attributes.map(&:to_sym)).empty?
-      end
-
-      # The "get to yes" feature is enabled per resolution vendor, since each vendor reports failed
-      # attributes differently. A nil vendor won't match the allowlist, so it stays disabled.
-      def get_to_yes_enabled_for_vendor?
-        IdentityConfig.store.idv_aamva_get_to_yes_enabled_vendors
-          .include?(proofing_vendor.to_s)
-      end
-
-      # AAMVA verifies the address printed on the identity document. If the user edited their
-      # address afterwards, resolution proofed a different address than the one AAMVA verified,
-      # so the AAMVA response can no longer cover an address failure.
-      def passed_state_id_attributes
-        attributes = applicant_pii[:aamva_verified_attributes].to_a
-        return attributes unless applicant_pii[:address_edited] == true
-
-        attributes.reject { |attribute| attribute.to_sym == :address }
-      end
-
       def biographical_info
         state_id_number = applicant_pii[:state_id_number]
         redacted_state_id_number = if state_id_number.present?
@@ -264,11 +228,11 @@ module Proofing
       end
 
       # Reports the attributes AAMVA verified that were usable for this adjudication, so the logs
-      # match the coverage decision above rather than the raw AAMVA response.
+      # match the resolution decision rather than the raw AAMVA response.
       def state_id_verified_attributes
         return {} if applicant_pii[:aamva_verified_attributes].blank?
 
-        { state_id_verified_attributes: passed_state_id_attributes }
+        { state_id_verified_attributes: resolution_decision.passed_state_id_attributes }
       end
     end
   end
