@@ -1,0 +1,21 @@
+name: Trigger GitLab External PR Pipeline
+on:
+  pull_request:
+    types: [synchronize]
+
+jobs:
+  notify-gitlab:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for GitLab pull mirror sync
+        run: sleep 5
+
+      - name: Forward pull_request event to GitLab
+        env:
+          GITLAB_WEBHOOK_URL: ${{ secrets.GITLAB_MIRROR_WEBHOOK_URL }}
+        run: |
+          curl -sS -X POST "$GITLAB_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -H "X-GitHub-Event: pull_request" \
+            --data-binary @"$GITHUB_EVENT_PATH"
+
