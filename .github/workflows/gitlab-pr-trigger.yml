@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Wait for GitLab pull mirror sync
-        run: sleep 5
+        run: sleep 15
 
       - name: Forward pull_request event to GitLab
         env:
