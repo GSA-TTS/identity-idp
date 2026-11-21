@@ -1,3 +1,10 @@
+# We need this because after moving to the GSA-TTS org,
+# the timing on the webhooks seems to have changed for reasons
+# we don't know.  The pull_request.synchronize webhook comes
+# too quickly or something, and thus no pipeline is created in
+# gitlab.  This causes the webhook to be sent again, which
+# actually triggers the pipeline.
+#
 name: Trigger GitLab External PR Pipeline
 on:
   pull_request:
