@@ -8,7 +8,7 @@
 # Be sure to remove this and turn off github actions in github
 # and delete the GITLAB_MIRROR_WEBHOOK_URL secret
 # once we are done with this.  This is kinda a hack to get
-# us working.
+# us working. 
 #
 name: Trigger GitLab External PR Pipeline
 on:
