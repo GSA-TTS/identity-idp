@@ -13,6 +13,8 @@ module Proofing
                   :applicant_pii,
                   :precheck_phone_number,
                   :proofing_vendor,
+                  :resolution_attempts,
+                  :failover_available,
                   :resolution_bypassed
 
       def initialize(
@@ -26,7 +28,11 @@ module Proofing
         precheck_phone_number:,
         hybrid_mobile_device_profiling_result: nil, # ThreatMetrix (Hybrid Mobile)
         proofing_vendor: nil, # resolution vendor that produced resolution_result
-        resolution_bypassed: false # a failed resolution_result was bypassed and treated as passing
+        resolution_bypassed: false, # a failed resolution_result was bypassed and treated as passing
+        # Ordered by attempt: { vendor => { resolution_result:, residential_resolution_result: } },
+        # holding only the results that came from a vendor call
+        resolution_attempts: nil,
+        failover_available: false
       )
         @resolution_result = resolution_result
         @ipp_enrollment_in_progress = ipp_enrollment_in_progress
@@ -39,6 +45,18 @@ module Proofing
         @precheck_phone_number = precheck_phone_number
         @proofing_vendor = proofing_vendor
         @resolution_bypassed = resolution_bypassed
+        @resolution_attempts = resolution_attempts
+        @failover_available = failover_available
+      end
+
+      # Keypaths of PII-like keys inside each per-vendor failover attempt entry, for an analytics
+      # event's pii_like_keypaths. Each argument is a path within a stage, starting with the stage
+      # name, e.g. [:resolution, :errors, :ssn].
+      def self.attempt_pii_keypaths(*stage_keypaths)
+        stage_keypaths.product(ProgressiveProofer::SUPPORTED_RESOLUTION_VENDORS)
+          .map do |(stage, *rest), vendor|
+            [:proofing_results, :context, :stages, stage, :attempts, vendor, *rest]
+          end
       end
 
       def adjudicated_result
@@ -63,8 +81,10 @@ module Proofing
               hybrid_mobile_device_profiling_adjudication_reason: hybrid_mobile_profiling_reason,
               resolution_adjudication_reason: resolution_reason,
               stages: {
-                resolution: resolution_stage,
-                residential_address: residential_resolution_result.to_h,
+                resolution: resolution_stage(resolution_result, :resolution_result),
+                residential_address: resolution_stage(
+                  residential_resolution_result, :residential_resolution_result
+                ),
                 threatmetrix:,
                 hybrid_mobile_threatmetrix:,
                 phone_precheck: phone_result,
@@ -75,12 +95,30 @@ module Proofing
         )
       end
 
+      def resolution_success?
+        resolution_result_and_reason.first
+      end
+
       private
 
-      def resolution_stage
-        return resolution_result.to_h unless resolution_bypassed
-
-        resolution_result.to_h.merge(bypassed: true)
+      # The deciding attempt stays at the top level of the stage, unchanged. Failover details are
+      # added alongside it, listing only the vendors called for this stage. Without attempt data
+      # (e.g. specs building results directly), the stage is the single deciding attempt.
+      def resolution_stage(result, attempt_key)
+        attempts = resolution_attempts.presence ||
+                   (proofing_vendor ? { proofing_vendor => { attempt_key => result } } : {})
+        stage_attempts = attempts.filter_map do |vendor, attempt|
+          [vendor, attempt[attempt_key].to_h] if attempt.key?(attempt_key)
+        end.to_h
+        stage = result.to_h
+        stage = stage.merge(bypassed: true) if resolution_bypassed &&
+                                               attempt_key == :resolution_result
+        stage.merge(
+          attempts: stage_attempts,
+          attempted_vendors: stage_attempts.keys,
+          failover_available: !!failover_available,
+          failover_used: stage_attempts.many?,
+        )
       end
 
       def errors
