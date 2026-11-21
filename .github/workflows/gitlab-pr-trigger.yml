@@ -1,4 +1,3 @@
-
 name: Trigger GitLab External PR Pipeline
 on:
   pull_request:
