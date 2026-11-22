@@ -57,7 +57,7 @@ RSpec.describe Idv::UnresolvedHandoffEligibility do
     idv_session.selfie_check_performed = true
   end
 
-  it 'is eligible when the passport passed and only resolution failed' do
+  it 'is eligible when a passport passed and only resolution failed' do
     expect(eligibility.eligible?).to eq(true)
     expect(eligibility.ineligible_reasons).to eq([])
   end
@@ -79,18 +79,71 @@ RSpec.describe Idv::UnresolvedHandoffEligibility do
     include_examples 'ineligible', :facial_match_not_requested
   end
 
-  context 'when the document is a state ID' do
-    before do
-      idv_session.pii_from_doc = Pii::StateId.new(
-        **Idp::Constants::MOCK_IDV_APPLICANT.slice(*Pii::StateId.members),
-      )
-    end
-    include_examples 'ineligible', :not_passport
-  end
-
   context 'when the passport source check did not run' do
     before { idv_session.source_check_vendor = nil }
-    include_examples 'ineligible', :passport_source_check_missing
+    include_examples 'ineligible', :document_source_check_not_passed
+  end
+
+  context 'with a state ID' do
+    let(:document_type) { Idp::Constants::DocumentTypes::DRIVERS_LICENSE }
+    let(:source_check_vendor) { DocAuth::Aamva::Proofer::VENDOR_NAME }
+    let(:proofer_mock_fallback) { false }
+
+    before do
+      allow(IdentityConfig.store).to receive(:proofer_mock_fallback)
+        .and_return(proofer_mock_fallback)
+      idv_session.pii_from_doc = Pii::StateId.new(
+        **Idp::Constants::MOCK_IDV_APPLICANT.slice(*Pii::StateId.members)
+          .merge(document_type_received: document_type),
+      )
+      idv_session.source_check_vendor = source_check_vendor
+    end
+
+    Idp::Constants::DocumentTypes::SUPPORTED_STATE_ID_TYPES.each do |type|
+      context "(#{type}) that AAMVA verified" do
+        let(:document_type) { type }
+
+        it 'is eligible' do
+          expect(eligibility.ineligible_reasons).to eq([])
+        end
+      end
+    end
+
+    context 'from a jurisdiction AAMVA does not support' do
+      let(:source_check_vendor) { Idp::Constants::Vendors::AAMVA_UNSUPPORTED_JURISDICTION }
+      include_examples 'ineligible', :document_source_check_not_passed
+    end
+
+    context 'whose AAMVA check was skipped for an outage' do
+      let(:source_check_vendor) { Idp::Constants::Vendors::AAMVA_CHECK_SKIPPED }
+      include_examples 'ineligible', :document_source_check_not_passed
+    end
+
+    context 'checked by the mock AAMVA proofer' do
+      let(:source_check_vendor) { Idp::Constants::Vendors::STATE_ID_MOCK }
+
+      context 'with the mock fallback off, as in production' do
+        include_examples 'ineligible', :document_source_check_not_passed
+      end
+
+      context 'with the mock fallback on' do
+        let(:proofer_mock_fallback) { true }
+
+        it 'is eligible' do
+          expect(eligibility.ineligible_reasons).to eq([])
+        end
+      end
+    end
+  end
+
+  context 'with a mobile driver’s license' do
+    before do
+      idv_session.pii_from_doc = Pii::StateId.new(
+        **Idp::Constants::MOCK_IDV_APPLICANT.slice(*Pii::StateId.members)
+          .merge(document_type_received: Idp::Constants::DocumentTypes::MDL),
+      )
+    end
+    include_examples 'ineligible', :document_type_not_supported
   end
 
   context 'when the selfie check did not pass' do

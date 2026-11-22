@@ -13,14 +13,17 @@ RSpec.describe Idv::UnresolvedHandoff do
     )
   end
 
+  let(:document_type) { Idp::Constants::DocumentTypes::PASSPORT }
+  let(:address_self_asserted) { true }
+
   subject(:handoff) { described_class.new(user_session:) }
 
   def start!
     handoff.start!(
       issuer:,
       pii:,
-      document_type: Idp::Constants::DocumentTypes::PASSPORT,
-      source_check_vendor: 'dos:passport',
+      document_type:,
+      address_self_asserted:,
     )
   end
 
@@ -42,6 +45,29 @@ RSpec.describe Idv::UnresolvedHandoff do
         'self_asserted' => %w[social_security_number address],
       )
       expect(data['authorized_at']).to be_nil
+    end
+
+    it 'records the State Department as the passport issuer check' do
+      start!
+
+      expect(user_session[described_class::SESSION_KEY]['verification_status']['document'])
+        .to include('type' => 'passport', 'issuer_check_source' => 'state_department')
+    end
+
+    context 'with a state ID whose address came from the document' do
+      let(:document_type) { Idp::Constants::DocumentTypes::DRIVERS_LICENSE }
+      let(:address_self_asserted) { false }
+
+      it 'records AAMVA and marks only the SSN as self-asserted' do
+        start!
+        status = user_session[described_class::SESSION_KEY]['verification_status']
+
+        expect(status['document']).to include(
+          'type' => 'drivers_license',
+          'issuer_check_source' => 'aamva',
+        )
+        expect(status['self_asserted']).to eq(['social_security_number'])
+      end
     end
 
     it 'drops blank values, so an empty address line 2 adds no blank line' do

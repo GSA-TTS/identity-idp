@@ -98,14 +98,41 @@ RSpec.describe Idv::UnresolvedHandoffController do
         )
         expect(handoff['verification_status']['document']).to include(
           'type' => Idp::Constants::DocumentTypes::PASSPORT,
-          'issuer_check_vendor' => 'dos:passport',
+          'issuer_check_source' => 'state_department',
         )
+        expect(handoff['verification_status']['self_asserted'])
+          .to eq(%w[social_security_number address])
         expect(controller.user_session[:idv]).to be_blank
         expect(user.reload.active_profile).to be_nil
         expect(@analytics).to have_logged_event(
           :idv_unresolved_handoff_submitted,
           success: true,
         )
+      end
+    end
+
+    context 'with a state ID whose address came from the document' do
+      before do
+        subject.idv_session.pii_from_doc = Pii::StateId.new(
+          **Idp::Constants::MOCK_IDV_APPLICANT.slice(*Pii::StateId.members),
+        )
+        subject.idv_session.updated_user_address = nil
+        subject.idv_session.source_check_vendor = DocAuth::Aamva::Proofer::VENDOR_NAME
+      end
+
+      it 'shares the document address and marks only the SSN as self-asserted' do
+        post :create, params: { unresolved_handoff: { consent_given: '1' } }
+
+        expect(response).to redirect_to(request_url)
+        expect(handoff['pii']).to include(
+          'address1' => Idp::Constants::MOCK_IDV_APPLICANT[:address1],
+          'zipcode' => Idp::Constants::MOCK_IDV_APPLICANT[:zipcode],
+        )
+        expect(handoff['verification_status']['document']).to include(
+          'type' => Idp::Constants::MOCK_IDV_APPLICANT[:document_type_received],
+          'issuer_check_source' => 'aamva',
+        )
+        expect(handoff['verification_status']['self_asserted']).to eq(['social_security_number'])
       end
     end
 

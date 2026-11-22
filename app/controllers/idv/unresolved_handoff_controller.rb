@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Idv
-  # Lets a user whose passport passed every document check, but whose identity resolution failed,
+  # Lets a user whose ID document passed every check, but whose identity resolution failed,
   # continue to an allowlisted service provider without a verified profile. See
   # Idv::UnresolvedHandoff and Idv::UnresolvedHandoffEligibility.
   class UnresolvedHandoffController < ApplicationController
@@ -31,7 +31,7 @@ module Idv
         issuer: current_sp.issuer,
         pii: handoff_pii,
         document_type: idv_session.pii_from_doc.document_type_received,
-        source_check_vendor: idv_session.source_check_vendor,
+        address_self_asserted: address_self_asserted?,
       )
 
       # The PII now lives only in the handoff, so the in-progress verification is discarded.
@@ -68,6 +68,14 @@ module Idv
         ssn: idv_session.ssn,
         **idv_session.updated_user_address.to_h,
       )
+    end
+
+    # Passports carry no address, so it is always typed in. A state ID's address comes from the
+    # document unless the user changed it.
+    def address_self_asserted?
+      Idp::Constants::DocumentTypes::SUPPORTED_PASSPORT_TYPES.include?(
+        idv_session.pii_from_doc.document_type_received,
+      ) || idv_session.updated_user_address.present?
     end
 
     def consent_params

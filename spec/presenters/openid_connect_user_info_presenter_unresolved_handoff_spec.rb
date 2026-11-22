@@ -37,7 +37,7 @@ RSpec.describe OpenidConnectUserInfoPresenter, 'with an unresolved IdV handoff' 
       },
       'verification_status' => Idv::UnresolvedHandoff.verification_status(
         document_type: 'passport',
-        source_check_vendor: 'dos:passport',
+        address_self_asserted: true,
       ),
       'authorized_at' => authorized_at,
     }

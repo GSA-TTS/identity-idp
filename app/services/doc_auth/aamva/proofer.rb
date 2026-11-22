@@ -3,6 +3,8 @@
 module DocAuth
   module Aamva
     class Proofer
+      VENDOR_NAME = 'aamva:state_id'
+
       Config = RedactedStruct.new(
         :auth_request_timeout,
         :auth_url,
@@ -62,7 +64,7 @@ module DocAuth
           success: false,
           errors: {},
           exception: exception,
-          vendor_name: 'aamva:state_id',
+          vendor_name: VENDOR_NAME,
           transaction_id: nil,
           verified_attributes: [],
           requested_attributes: requested_attributes(verification_request),
@@ -82,7 +84,7 @@ module DocAuth
           success: successful?(verification_response),
           errors: parse_verification_errors(verification_response),
           exception: nil,
-          vendor_name: 'aamva:state_id',
+          vendor_name: VENDOR_NAME,
           transaction_id: verification_response.transaction_locator_id,
           requested_attributes: requested_attributes(verification_request),
           verified_attributes: verified_attributes(verification_response),

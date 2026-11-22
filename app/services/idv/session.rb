@@ -53,7 +53,7 @@ module Idv
   # @attr ssn [String, nil]
   # @attr threatmetrix_review_status [String, nil]
   # @attr threatmetrix_session_id [String, nil]
-  # @attr unresolved_handoff_eligible [Boolean, nil] passport passed, only resolution failed
+  # @attr unresolved_handoff_eligible [Boolean, nil] ID document passed, only resolution failed
   # @attr user_phone_confirmation [Boolean, nil]
   # @attr vendor_phone_confirmation [Boolean, nil]
   # @attr verify_info_step_document_capture_session_uuid [String, nil]

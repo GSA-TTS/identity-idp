@@ -20,7 +20,7 @@ class SessionEncryptor
   VERSION_KEY = 'v'
 
   # 'idv/in_person' and 'idv' are used during the proofing process and can contain PII.
-  # 'unresolved_idv_handoff' holds passport PII for a one-time Idv::UnresolvedHandoff.
+  # 'unresolved_idv_handoff' holds ID document PII for a one-time Idv::UnresolvedHandoff.
   # personal keys are generated and stored in the session between requests, but are used
   # to decrypt PII bundles, so we treat them similarly to the PII itself.
   SENSITIVE_PATHS = [
