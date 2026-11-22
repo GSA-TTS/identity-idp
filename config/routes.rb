@@ -511,6 +511,8 @@ Rails.application.routes.draw do
       get '/session/errors/ssn_failure' => 'session_errors#ssn_failure'
       get '/session/errors/exception' => 'session_errors#exception'
       get '/session/errors/rate_limited' => 'session_errors#rate_limited'
+      get '/unresolved_handoff' => 'unresolved_handoff#show'
+      post '/unresolved_handoff' => 'unresolved_handoff#create'
       get '/not_verified' => 'not_verified#show'
       get '/please_call' => 'please_call#show'
       delete '/session' => 'sessions#destroy'

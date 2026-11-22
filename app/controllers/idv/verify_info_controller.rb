@@ -53,6 +53,7 @@ module Idv
         undo_step: ->(idv_session:, user:) do
           idv_session.residential_resolution_vendor = nil
           idv_session.resolution_successful = nil
+          idv_session.unresolved_handoff_eligible = nil
           idv_session.resolution_vendor = nil
           idv_session.address_edited = nil
           idv_session.verify_info_step_document_capture_session_uuid = nil

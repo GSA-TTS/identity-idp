@@ -34,6 +34,8 @@ module OpenidConnect
         return redirect_to reactivate_account_url if user_needs_to_reactivate_account?
         return redirect_to url_for_pending_profile_reason if user_has_pending_profile?
         if identity_needs_verification? || facial_match_needed?
+          return handle_unresolved_idv_handoff if unresolved_idv_handoff_authorizable?
+          unresolved_idv_handoff.clear! if unresolved_idv_handoff.present_for?(issuer)
           return redirect_to idv_url
         end
         if needs_to_reproof?
@@ -161,7 +163,10 @@ module OpenidConnect
     end
 
     def resolved_authn_context_int_ial
-      if resolved_authn_context_result.ialmax?
+      # An unresolved handoff is linked and billed as IAL1: no identity was verified.
+      if @unresolved_idv_handoff_in_progress
+        1
+      elsif resolved_authn_context_result.ialmax?
         0
       elsif resolved_authn_context_result.identity_proofing?
         2
@@ -187,6 +192,32 @@ module OpenidConnect
           success: result.success?,
         ),
       )
+    end
+
+    def unresolved_idv_handoff
+      @unresolved_idv_handoff ||= Idv::UnresolvedHandoff.new(user_session:)
+    end
+
+    # A one-time pass for a user who chose Idv::UnresolvedHandoff after failing resolution.
+    # Token exchange is excluded: a delegated token must never stand for an unverified user.
+    def unresolved_idv_handoff_authorizable?
+      service_provider&.idv_unresolved_handoff_allowed? &&
+        resolved_authn_context_result.facial_match? &&
+        !token_exchange_scope_requested? &&
+        unresolved_idv_handoff.authorizable?(issuer)
+    end
+
+    # The handoff consent page replaces the completions screen and the authorization
+    # confirmation, so the identity is linked and the code issued directly.
+    def handle_unresolved_idv_handoff
+      @unresolved_idv_handoff_in_progress = true
+      link_identity_to_service_provider
+      unresolved_idv_handoff.mark_authorized!
+
+      result = @authorize_form.submit
+      analytics.idv_unresolved_handoff_authorized(success: result.success?)
+      track_handoff_analytics(result, user_sp_authorized: true)
+      handle_successful_handoff
     end
 
     def identity_needs_verification?

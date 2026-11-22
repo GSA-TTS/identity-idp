@@ -1332,6 +1332,19 @@ idv.unavailable.idv_explanation.without_sp: L’organisme auquel vous essayez d�
 idv.unavailable.next_steps_html: '%{status_page_link_html} ou quittez le site %{app_name} et réessayez plus tard.'
 idv.unavailable.status_page_link: Obtenir les dernières informations sur notre page d’état des systèmes.
 idv.unavailable.technical_difficulties: Malheureusement, nous rencontrons des difficultés techniques et ne pouvons pas vérifier votre identité pour le moment.
+idv.unresolved_handoff.consent_label: 'Je comprends que mon identité n’a pas été entièrement vérifiée et j’accepte de partager mes informations avec %{sp_name}.'
+idv.unresolved_handoff.continue: 'Continuer vers %{sp_name}'
+idv.unresolved_handoff.errors.consent_required: 'Cochez la case pour continuer.'
+idv.unresolved_handoff.heading: 'Continuer vers %{sp_name} sans vérification complète ?'
+idv.unresolved_handoff.intro: 'Nous avons vérifié votre passeport, mais nous n’avons pas pu faire correspondre les informations que vous avez saisies aux registres publics.'
+idv.unresolved_handoff.offer.button: 'Continuer sans vérification complète'
+idv.unresolved_handoff.offer.heading: 'Continuer quand même vers %{sp_name}'
+idv.unresolved_handoff.offer.text: 'Votre passeport a été vérifié. Vous pouvez continuer vers %{sp_name}, qui terminera l’examen de votre identité.'
+idv.unresolved_handoff.title: 'Continuer vers %{sp_name}'
+idv.unresolved_handoff.what_happens: '%{sp_name} examinera vos informations et pourra vous en demander davantage. L’identité de votre compte %{app_name} ne sera pas vérifiée, donc les autres agences ne verront pas votre identité comme vérifiée.'
+idv.unresolved_handoff.what_happens_heading: 'Étapes suivantes'
+idv.unresolved_handoff.what_we_share: 'Nous partagerons avec %{sp_name} les informations de votre passeport, votre numéro de sécurité sociale et l’adresse que vous avez saisie. Nous leur indiquerons que nous n’avons pas pu vérifier entièrement votre identité.'
+idv.unresolved_handoff.what_we_share_heading: 'Ce que nous partagerons'
 idv.warning.address.heading: Nous n’avons pas trouvé d’informations correspondant à votre adresse
 idv.warning.sessions.heading: Nous n’avons pas trouvé de dossiers correspondant à vos informations personnelles
 idv.warning.state_id.cancel_button: Quitter %{app_name}

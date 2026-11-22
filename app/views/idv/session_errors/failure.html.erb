@@ -27,6 +27,9 @@
             ),
           ) %>
     </p>
+    <% if @unresolved_handoff_path %>
+      <%= render 'idv/unresolved_handoff/offer', url: @unresolved_handoff_path, sp_name: @unresolved_handoff_sp_name %>
+    <% end %>
   <% end %>
 <% else %>
 <%= render(
@@ -64,5 +67,8 @@
               ) %>
         </strong>
       </p>
+      <% if @unresolved_handoff_path %>
+        <%= render 'idv/unresolved_handoff/offer', url: @unresolved_handoff_path, sp_name: @unresolved_handoff_sp_name %>
+      <% end %>
     <% end %>
 <% end %>

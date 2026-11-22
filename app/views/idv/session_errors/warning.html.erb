@@ -17,6 +17,9 @@
 
       <p><%= t('idv.failure.sessions.warning') %></p>
       <p><%= t('idv.failure.attempts_html', count: @remaining_submit_attempts) %></p>
+      <% if @unresolved_handoff_path %>
+        <%= render 'idv/unresolved_handoff/offer', url: @unresolved_handoff_path, sp_name: @unresolved_handoff_sp_name %>
+      <% end %>
     <% end %>
 
     <% page.with_actions do %>
@@ -51,6 +54,10 @@
        url: @try_again_path,
        class: 'margin-bottom-2',
      ) { t('idv.forgot_password.try_again') } %>
+<% end %>
+
+<% if @unresolved_handoff_path %>
+  <%= render 'idv/unresolved_handoff/offer', url: @unresolved_handoff_path, sp_name: @unresolved_handoff_sp_name %>
 <% end %>
 
 <%= render PageFooterComponent.new do %>

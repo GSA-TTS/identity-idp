@@ -19,7 +19,8 @@ class SessionEncryptor
   COMPRESSED_KEY = 'c'
   VERSION_KEY = 'v'
 
-  # 'idv/in_person' and 'idv' are used during the proofing process and can contain PII
+  # 'idv/in_person' and 'idv' are used during the proofing process and can contain PII.
+  # 'unresolved_idv_handoff' holds passport PII for a one-time Idv::UnresolvedHandoff.
   # personal keys are generated and stored in the session between requests, but are used
   # to decrypt PII bundles, so we treat them similarly to the PII itself.
   SENSITIVE_PATHS = [
@@ -28,6 +29,7 @@ class SessionEncryptor
     ['warden.user.user.session', 'idv'],
     ['warden.user.user.session', 'personal_key'],
     ['warden.user.user.session', 'unconfirmed_phone'],
+    ['warden.user.user.session', 'unresolved_idv_handoff'],
     ['flash', 'flashes', 'personal_key'],
     ['flash', 'flashes', 'email'],
     ['email'],

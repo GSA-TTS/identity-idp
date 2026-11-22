@@ -39,6 +39,15 @@ class OutOfBandSessionAccessor
     Pii::Cacher.new(nil, session).fetch(profile_id) if session
   end
 
+  # @param issuer [String]
+  # @return [Hash, nil] an authorized Idv::UnresolvedHandoff for `issuer`, if there is one
+  def load_unresolved_idv_handoff(issuer:)
+    Idv::UnresolvedHandoff.authorized_data_from_user_session(
+      session_data.dig('warden.user.user.session'),
+      issuer:,
+    )
+  end
+
   # @return [String, nil]
   def load_web_locale
     session_data.dig('warden.user.user.session', :web_locale)
@@ -80,6 +89,13 @@ class OutOfBandSessionAccessor
     }
 
     put(data, expiration)
+  end
+
+  # @api private
+  # Only used for convenience in tests
+  # @param [Hash] data an Idv::UnresolvedHandoff session entry
+  def put_unresolved_idv_handoff(data, expiration = 5.minutes)
+    put({ Idv::UnresolvedHandoff::SESSION_KEY => data }, expiration)
   end
 
   # @api private
