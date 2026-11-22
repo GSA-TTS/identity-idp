@@ -26,7 +26,7 @@ jobs:
         env:
           GITLAB_WEBHOOK_URL: ${{ secrets.GITLAB_MIRROR_WEBHOOK_URL }}
         run: |
-          curl -sS -X POST "$GITLAB_WEBHOOK_URL" \
+          curl -sS -X POST "$GITLAB_MIRROR_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
             -H "X-GitHub-Event: pull_request" \
             --data-binary @"$GITHUB_EVENT_PATH"
