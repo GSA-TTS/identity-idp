@@ -1057,6 +1057,19 @@ module Test
         template: 'users/forget_all_browsers/show',
         permutations: [Permutation.new(label: 'Default', params: {})],
       ),
+      # NOTE: scaffold-only — the nds_layout? branch on this template currently
+      # renders byte-identical legacy markup (no NDS:: components yet), so this
+      # page will look the same in both buckets in the explorer until the real
+      # NDS redesign lands.
+      Page.new(
+        key: 'sts-consent',
+        title: 'STS consent (MyTravelGov delegation)',
+        flow: ACCOUNT,
+        template: 'users/sts_consent/new',
+        permutations: [
+          Permutation.new(label: 'Default', params: {}),
+        ],
+      ),
     ].freeze
 
     def self.pages

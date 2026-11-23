@@ -1842,6 +1842,12 @@ module Test
 
     def setup_dashboard_forget_all_browsers
       @nds_current_user = build_dashboard_user
+    def setup_sts_consent
+      user = User.new
+      @nds_current_user = user
+      @sts_consent_form = StsConsentForm.new(
+        user:, target_app: 'urn:gov:gsa:test:nds-explorer-sts', actor_app: DEV_SP_ISSUER,
+      )
       {}
     end
 
