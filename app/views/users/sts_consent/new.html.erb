@@ -13,7 +13,7 @@
 
   <p class="copy copy--muted margin-bottom-0"><%= t('sts_consent.content', america_gov_name: AMERICA_GOV_NAME) %></p>
 
-  <%= render AccordionComponent.new(class: '') do |c| %>
+  <%= render NDS::AccordionComponent.new(class: '') do |c| %>
     <% c.with_header do %>
       <span class="grid-row grid-gap">
         <%= image_tag(
