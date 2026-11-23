@@ -1842,6 +1842,9 @@ module Test
 
     def setup_dashboard_forget_all_browsers
       @nds_current_user = build_dashboard_user
+      {}
+    end
+
     def setup_sts_consent
       user = User.new
       @nds_current_user = user
