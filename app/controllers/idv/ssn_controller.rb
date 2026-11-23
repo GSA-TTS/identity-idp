@@ -45,6 +45,7 @@ module Idv
         sp_name: decorated_sp_session.sp_name,
         ssn_form: ssn_form,
         step_indicator_steps: step_indicator_steps,
+        itin_enabled: itin_enabled?,
       )
 
       attempts_api_tracker.idv_ssn_submitted(
