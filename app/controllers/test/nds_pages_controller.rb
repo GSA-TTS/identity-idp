@@ -1549,7 +1549,7 @@ module Test
       flash.now[:error] = t('idv.errors.incorrect_password') if params[:error].present?
       {}
     end
- 
+
     # Signed-in dashboard pages read the user's records through DB scopes (MfaContext,
     # recent events and devices, connected apps, STS consents), so their setups persist a
     # throwaway user. Rendering inside a rolled-back transaction keeps the dev DB clean.
