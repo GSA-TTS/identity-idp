@@ -48,6 +48,7 @@ RSpec.describe Idv::LinkSentController do
         analytics_id: 'Doc Auth',
         flow_path: 'hybrid',
         step: 'link_sent',
+        proofing_components: a_kind_of(Hash),
       }
     end
 
@@ -120,6 +121,7 @@ RSpec.describe Idv::LinkSentController do
         analytics_id: 'Doc Auth',
         flow_path: 'hybrid',
         step: 'link_sent',
+        proofing_components: a_kind_of(Hash),
       }
     end
 

@@ -40,6 +40,7 @@ RSpec.describe Idv::ChooseIdTypeController do
           step: 'choose_id_type',
           analytics_id: 'Doc Auth',
           flow_path: 'standard',
+          proofing_components: a_kind_of(Hash),
         }
       end
 
@@ -112,6 +113,7 @@ RSpec.describe Idv::ChooseIdTypeController do
         analytics_id: 'Doc Auth',
         flow_path: 'standard',
         chosen_id_type: chosen_id_type,
+        proofing_components: a_kind_of(Hash),
       }
     end
 

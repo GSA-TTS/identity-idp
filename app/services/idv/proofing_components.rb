@@ -10,6 +10,10 @@ module Idv
       idv_session.agent_proofed
     end
 
+    def document_capture_session_uuid
+      idv_session.document_capture_session&.uuid
+    end
+
     def document_check
       if idv_session.ipp_state_id_complete? || idv_session.ipp_aamva_pending_state_id_pii.present?
         Idp::Constants::Vendors::USPS
@@ -75,6 +79,7 @@ module Idv
     def to_h
       {
         agent_proofed:,
+        document_capture_session_uuid:,
         document_check:,
         document_type_received:,
         source_check:,

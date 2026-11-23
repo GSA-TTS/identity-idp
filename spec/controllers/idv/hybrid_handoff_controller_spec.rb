@@ -72,6 +72,7 @@ RSpec.describe Idv::HybridHandoffController do
         step: 'hybrid_handoff',
         analytics_id: 'Doc Auth',
         selfie_check_required: sp_selfie_enabled,
+        proofing_components: a_kind_of(Hash),
       }
     end
 
@@ -388,6 +389,7 @@ RSpec.describe Idv::HybridHandoffController do
             request_id: 'fake-message-request-id',
             success: true,
           },
+          proofing_components: a_kind_of(Hash),
         }
       end
 
@@ -602,6 +604,7 @@ RSpec.describe Idv::HybridHandoffController do
           step: 'hybrid_handoff',
           analytics_id: 'Doc Auth',
           selfie_check_required: sp_selfie_enabled,
+          proofing_components: a_kind_of(Hash),
         }
       end
 
@@ -663,6 +666,7 @@ RSpec.describe Idv::HybridHandoffController do
           step: 'hybrid_handoff',
           analytics_id: 'Doc Auth',
           selfie_check_required: sp_selfie_enabled,
+          proofing_components: a_kind_of(Hash),
         }
       end
 

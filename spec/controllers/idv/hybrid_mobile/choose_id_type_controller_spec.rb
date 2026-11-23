@@ -108,6 +108,7 @@ RSpec.describe Idv::HybridMobile::ChooseIdTypeController do
           step: 'hybrid_choose_id_type',
           analytics_id: 'Doc Auth',
           flow_path: 'hybrid',
+          proofing_components: a_kind_of(Hash),
         }
       end
 
@@ -156,6 +157,7 @@ RSpec.describe Idv::HybridMobile::ChooseIdTypeController do
         analytics_id: 'Doc Auth',
         flow_path: 'hybrid',
         chosen_id_type: chosen_id_type,
+        proofing_components: a_kind_of(Hash),
       }
     end
 

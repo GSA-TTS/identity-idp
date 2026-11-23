@@ -77,6 +77,7 @@ RSpec.describe Idv::InPerson::StateIdController do
         flow_path: 'standard',
         step: 'state_id',
         opted_in_to_in_person_proofing: true,
+        proofing_components: a_kind_of(Hash),
       }
     end
 
@@ -206,6 +207,7 @@ RSpec.describe Idv::InPerson::StateIdController do
           document_zip_code: identity_doc_zipcode&.slice(0, 5),
           asserted_id_type:,
           opted_in_to_in_person_proofing: true,
+          proofing_components: a_kind_of(Hash),
         }
       end
 

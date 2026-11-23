@@ -303,6 +303,7 @@ RSpec.describe Idv::WelcomeController do
       {
         step: 'welcome',
         analytics_id: 'Doc Auth',
+        proofing_components: a_kind_of(Hash),
       }
     end
 

@@ -12,7 +12,7 @@ module Idv
     before_action :check_for_pending_agent_proofed_user, only: :show
 
     def show
-      analytics.idv_doc_auth_welcome_visited(**analytics_arguments)
+      analytics.idv_doc_auth_welcome_visited(**analytics_arguments.except(:proofing_components))
 
       Funnel::DocAuth::RegisterStep.new(current_user.id, sp_session[:issuer])
         .call('welcome', :view, true)

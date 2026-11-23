@@ -273,6 +273,7 @@ RSpec.describe Idv::DocumentCaptureController do
         step: 'document_capture',
         liveness_checking_required: false,
         selfie_check_required: facial_match_required,
+        proofing_components: a_kind_of(Hash),
       }
     end
 
@@ -531,6 +532,7 @@ RSpec.describe Idv::DocumentCaptureController do
         step: 'document_capture',
         liveness_checking_required: false,
         selfie_check_required: facial_match_required,
+        proofing_components: a_kind_of(Hash),
       }
     end
 
@@ -629,6 +631,7 @@ RSpec.describe Idv::DocumentCaptureController do
         flow_path: :standard,
         skip_hybrid_handoff: nil,
         opted_in_to_in_person_proofing: nil,
+        proofing_components: a_kind_of(Hash),
       }
     end
 

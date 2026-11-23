@@ -108,6 +108,7 @@ RSpec.describe Idv::HowToVerifyController do
       {
         step: 'how_to_verify',
         analytics_id: 'Doc Auth',
+        proofing_components: a_kind_of(Hash),
       }
     end
 
@@ -250,6 +251,7 @@ RSpec.describe Idv::HowToVerifyController do
           analytics_id: 'Doc Auth',
           error_details: { selection: { blank: true } },
           success: false,
+          proofing_components: a_kind_of(Hash),
         }
       end
 
@@ -269,6 +271,7 @@ RSpec.describe Idv::HowToVerifyController do
           selection:,
           error_details: { selection: { inclusion: true } },
           success: false,
+          proofing_components: a_kind_of(Hash),
         }
       end
 
@@ -283,6 +286,7 @@ RSpec.describe Idv::HowToVerifyController do
           step: 'how_to_verify',
           success: true,
           selection:,
+          proofing_components: a_kind_of(Hash),
         }
       end
 
@@ -377,6 +381,7 @@ RSpec.describe Idv::HowToVerifyController do
           step: 'how_to_verify',
           success: true,
           selection:,
+          proofing_components: a_kind_of(Hash),
         }
       end
       it 'sets skip doc auth on idv session to true and redirects to document capture' do
@@ -401,6 +406,7 @@ RSpec.describe Idv::HowToVerifyController do
           step: 'how_to_verify',
           success: true,
           selection:,
+          proofing_components: a_kind_of(Hash),
         }
       end
 

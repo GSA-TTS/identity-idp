@@ -40,6 +40,7 @@ RSpec.describe Idv::AgreementController do
       {
         step: 'agreement',
         analytics_id: 'Doc Auth',
+        proofing_components: a_kind_of(Hash),
       }
     end
 
@@ -103,6 +104,7 @@ RSpec.describe Idv::AgreementController do
         success: true,
         step: 'agreement',
         analytics_id: 'Doc Auth',
+        proofing_components: a_kind_of(Hash),
       }
     end
 

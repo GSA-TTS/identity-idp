@@ -45,6 +45,7 @@ RSpec.describe Idv::HybridMobile::CaptureCompleteController do
         flow_path: 'hybrid',
         step: 'capture_complete',
         liveness_checking_required: false,
+        proofing_components: a_kind_of(Hash),
       }
     end
 

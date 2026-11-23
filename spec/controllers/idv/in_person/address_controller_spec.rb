@@ -191,6 +191,7 @@ RSpec.describe Idv::InPerson::AddressController do
         flow_path: 'standard',
         step: 'address',
         opted_in_to_in_person_proofing: true,
+        proofing_components: a_kind_of(Hash),
       }
     end
 
@@ -248,6 +249,7 @@ RSpec.describe Idv::InPerson::AddressController do
           step: 'address',
           current_address_zip_code: '59010',
           opted_in_to_in_person_proofing: true,
+          proofing_components: a_kind_of(Hash),
         }
       end
 
@@ -344,6 +346,7 @@ RSpec.describe Idv::InPerson::AddressController do
           step: 'address',
           current_address_zip_code: '59010',
           opted_in_to_in_person_proofing: true,
+          proofing_components: a_kind_of(Hash),
         }
       end
 

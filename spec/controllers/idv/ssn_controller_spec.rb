@@ -45,6 +45,7 @@ RSpec.describe Idv::SsnController do
         analytics_id: 'Doc Auth',
         flow_path: 'standard',
         step: 'ssn',
+        proofing_components: a_kind_of(Hash),
       }
     end
 
@@ -160,6 +161,7 @@ RSpec.describe Idv::SsnController do
           flow_path: 'standard',
           step: 'ssn',
           success: true,
+          proofing_components: a_kind_of(Hash),
         }
       end
 
@@ -191,6 +193,7 @@ RSpec.describe Idv::SsnController do
             step: 'ssn',
             success: true,
             previous_ssn_edit_distance: 6,
+            proofing_components: a_kind_of(Hash),
           }
         end
 
@@ -285,6 +288,7 @@ RSpec.describe Idv::SsnController do
           step: 'ssn',
           success: false,
           error_details: { ssn: { invalid: true } },
+          proofing_components: a_kind_of(Hash),
         }
       end
 

@@ -20,7 +20,10 @@ RSpec.describe Idv::MailOnlyWarningController do
   describe '#show' do
     let(:analytics_name) { 'IdV: Mail only warning visited' }
     let(:analytics_args) do
-      { analytics_id: 'Doc Auth' }
+      {
+        analytics_id: 'Doc Auth',
+        proofing_components: a_kind_of(Hash),
+      }
     end
 
     it 'renders the show template' do

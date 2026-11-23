@@ -102,6 +102,7 @@ RSpec.describe Idv::InPerson::SsnController do
         flow_path: 'standard',
         step: 'ssn',
         opted_in_to_in_person_proofing: true,
+        proofing_components: a_kind_of(Hash),
       }
     end
 
@@ -184,6 +185,7 @@ RSpec.describe Idv::InPerson::SsnController do
           step: 'ssn',
           success: true,
           opted_in_to_in_person_proofing: true,
+          proofing_components: a_kind_of(Hash),
         }
       end
 
@@ -236,6 +238,7 @@ RSpec.describe Idv::InPerson::SsnController do
             success: true,
             previous_ssn_edit_distance: 6,
             opted_in_to_in_person_proofing: true,
+            proofing_components: a_kind_of(Hash),
           }
         end
 
@@ -261,6 +264,7 @@ RSpec.describe Idv::InPerson::SsnController do
           success: false,
           error_details: { ssn: { invalid: true } },
           opted_in_to_in_person_proofing: true,
+          proofing_components: a_kind_of(Hash),
         }
       end
 
