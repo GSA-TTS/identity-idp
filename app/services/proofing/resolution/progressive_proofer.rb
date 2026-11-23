@@ -140,37 +140,31 @@ module Proofing
         ipp_enrollment_in_progress:,
         timer:
       )
-        vendors = failover_selected? ? resolution_vendors : [proofing_vendor]
-        failover_available = vendors.many?
-        attempts = {}
+        vendor_chain = resolution_vendor_chain
+        multi_vendor_chain = vendor_chain.many?
+        resolution_attempts = {}
         resolution = nil
-        arguments = { applicant_pii:, current_sp:, ipp_enrollment_in_progress: }
-        vendors.each do |vendor|
-          attempt_timer = failover_available ? JobHelpers::Timer.new : timer
-          begin
-            resolution = resolve_identity(vendor:, **arguments, timer: attempt_timer)
-          ensure
-            if failover_available
-              attempt_timer.results.each do |stage, duration|
-                timer.results["#{stage} #{vendor}"] = duration
-                timer.results[stage] = (timer.results.fetch(stage, 0) + duration).round(2)
-              end
-            end
-          end
-          attempts[vendor] = vendor_call_results(
+        vendor_chain.each do |vendor|
+          resolution = resolve_identity_and_record_timing(
+            vendor:,
+            applicant_pii:,
+            current_sp:,
+            ipp_enrollment_in_progress:,
+            timer:,
+            vendor_qualified_timing: multi_vendor_chain,
+          )
+          resolution_attempts[vendor] = vendor_call_results(
             resolution, applicant_pii:, ipp_enrollment_in_progress:
           )
-          break unless failover_available
-
-          decision = ResolutionDecision.new(
-            **resolution,
-            applicant_pii:,
-            ipp_enrollment_in_progress:,
-            ipp_current_address_matches_id: applicant_pii[:ipp_current_address_matches_id],
+          break if resolution_attempt_successful?(
+            resolution, applicant_pii:, ipp_enrollment_in_progress:
           )
-          break if decision.success?
         end
-        resolution.merge(resolution_attempts: attempts, failover_available:)
+
+        resolution.merge(
+          resolution_attempts:,
+          failover_available: multi_vendor_chain,
+        )
       end
 
       # Keeps only the results that came from a vendor call. Outside in-person proofing the
@@ -188,38 +182,48 @@ module Proofing
         end
       end
 
-      # Rolled once per submission. rand is in [0, 1), so 0 never selects and 100 always does.
-      def failover_selected?
-        (rand * 100) < IdentityConfig.store.idv_resolution_failover_enabled_percent
-      end
-
-      # The assigned vendor first, then the fallbacks in traffic order.
-      def resolution_vendors
-        [proofing_vendor, *fallback_vendors_by_traffic].uniq
-      end
-
-      # Vendors with configured traffic share, highest share first.
-      # Equal shares keep bucket order.
-      # Mock is never a fallback.
-      def fallback_vendors_by_traffic
-        shares = vendor_traffic_shares
-        bucket_order = shares.keys
-        eligible_vendors = bucket_order.select do |vendor|
-          shares[vendor].positive? && vendor != :mock
-        end
-        eligible_vendors.sort_by { |vendor| [-shares[vendor], bucket_order.index(vendor)] }
-      end
-
-      # Traffic share for each vendor bucket, from config.
-      # Unassigned traffic goes to the default vendor.
-      def vendor_traffic_shares
+      def resolution_vendor_chain
         vendor_ab_test =
           is_proofing_agent ? AbTests::PROOFING_AGENT_PROOFING_VENDOR : AbTests::PROOFING_VENDOR
-        default_vendor = vendor_ab_test.default_bucket
-        shares = vendor_ab_test.buckets.dup
-        unassigned_share = 100 - shares.values.sum
-        shares[default_vendor] = shares.fetch(default_vendor, 0) + unassigned_share
-        shares
+        VendorChain.new(
+          assigned_vendor: proofing_vendor,
+          configured_shares: vendor_ab_test.buckets,
+        ).vendors
+      end
+
+      def resolve_identity_and_record_timing(
+        vendor:,
+        applicant_pii:,
+        current_sp:,
+        ipp_enrollment_in_progress:,
+        timer:,
+        vendor_qualified_timing:
+      )
+        attempt_timer = vendor_qualified_timing ? JobHelpers::Timer.new : timer
+        begin
+          resolve_identity(
+            vendor:, applicant_pii:, current_sp:, ipp_enrollment_in_progress:, timer: attempt_timer,
+          )
+        ensure
+          merge_attempt_timing!(timer, attempt_timer, vendor) if vendor_qualified_timing
+        end
+      end
+
+      def merge_attempt_timing!(timer, attempt_timer, vendor)
+        attempt_timer.results.each do |stage, duration|
+          timer.results["#{stage} #{vendor}"] = duration
+          total_duration = timer.results.fetch(stage, 0) + duration
+          timer.results[stage] = total_duration.round(2)
+        end
+      end
+
+      def resolution_attempt_successful?(resolution, applicant_pii:, ipp_enrollment_in_progress:)
+        ResolutionDecision.new(
+          **resolution,
+          applicant_pii:,
+          ipp_enrollment_in_progress:,
+          ipp_current_address_matches_id: applicant_pii[:ipp_current_address_matches_id],
+        ).success?
       end
 
       # Resolves the full identity (name, DOB, SSN, address) with one vendor. In-person enrollments

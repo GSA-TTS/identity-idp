@@ -56,27 +56,28 @@ module Proofing
 
       def success_and_reason
         @success_and_reason ||=
-          # This branch is IPP-specific: only the in-person flow resolves a separate
-          # residential address (ResidentialAddressPlugin returns an automatic success
-          # when not in IPP). When the residential address differs from the ID address
-          # and its resolution fails, fail here rather than crediting the state-ID
-          # (document) address resolution. This does not apply to non-IPP flows because
-          # they never run a separate residential resolution.
-          if ipp_enrollment_in_progress && !residential_resolution_result.success? &&
-             ipp_current_address_matches_id == false
+          if distinct_ipp_residential_address_failed?
             [false, :fail_resolution_skip_state_id]
           elsif resolution_bypassed
             [true, :instant_verify_bypass]
           elsif resolution_result.success?
             [true, :pass_resolution_and_state_id]
-          elsif state_id_attributes_cover_resolution_failures?
+          elsif state_id_covers_resolution_failures?
             [true, :state_id_covers_failed_resolution]
           else
             [false, :fail_resolution_without_state_id_coverage]
           end
       end
 
-      def state_id_attributes_cover_resolution_failures?
+      # Only IPP resolves a separate residential address. When it differs from the document
+      # address, its failure takes precedence over the state-ID resolution result.
+      def distinct_ipp_residential_address_failed?
+        ipp_enrollment_in_progress &&
+          ipp_current_address_matches_id == false &&
+          !residential_resolution_result.success?
+      end
+
+      def state_id_covers_resolution_failures?
         return false unless get_to_yes_enabled_for_vendor?
         return false unless resolution_result.failed_result_can_pass_with_additional_verification?
 
