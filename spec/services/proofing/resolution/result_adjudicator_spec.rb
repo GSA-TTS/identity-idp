@@ -78,6 +78,137 @@ RSpec.describe Proofing::Resolution::ResultAdjudicator do
     )
   end
 
+  describe '.attempt_pii_keypaths' do
+    it 'returns a keypath inside each vendor attempt entry for each stage path' do
+      keypaths = described_class.attempt_pii_keypaths(
+        [:resolution, :errors, :ssn],
+        [:residential_address, :errors, :ssn],
+      )
+
+      vendors = Proofing::Resolution::ProgressiveProofer::SUPPORTED_RESOLUTION_VENDORS
+      expect(keypaths).to match_array(
+        vendors.flat_map do |vendor|
+          [
+            [:proofing_results, :context, :stages, :resolution, :attempts, vendor, :errors, :ssn],
+            [:proofing_results, :context, :stages, :residential_address, :attempts, vendor,
+             :errors, :ssn],
+          ]
+        end,
+      )
+    end
+  end
+
+  describe 'resolution stage failover fields' do
+    let(:summary_keys) { %i[attempts attempted_vendors failover_available failover_used] }
+
+    it 'keeps each stage result unchanged at the top level' do
+      stages = subject.adjudicated_result.extra[:context][:stages]
+
+      expect(stages[:resolution].except(*summary_keys)).to eq(resolution_result.to_h)
+      expect(stages[:residential_address].except(*summary_keys))
+        .to eq(residential_resolution_result.to_h)
+    end
+
+    it 'treats a single result as one attempt by the deciding vendor' do
+      stages = subject.adjudicated_result.extra[:context][:stages]
+
+      expect(stages[:resolution]).to include(
+        attempts: { instant_verify_ddp: resolution_result.to_h },
+        attempted_vendors: [:instant_verify_ddp],
+        failover_available: false,
+        failover_used: false,
+      )
+    end
+
+    context 'with failover attempts' do
+      let(:failed_result) { Proofing::Resolution::Result.new(success: false, vendor_name: 'socure_kyc') }
+
+      subject do
+        described_class.new(
+          resolution_result:,
+          residential_resolution_result:,
+          ipp_enrollment_in_progress:,
+          device_profiling_result:,
+          phone_result:,
+          ipp_current_address_matches_id:,
+          applicant_pii:,
+          precheck_phone_number: nil,
+          proofing_vendor:,
+          failover_available: true,
+          resolution_attempts: {
+            socure_kyc: { resolution_result: failed_result },
+            instant_verify_ddp: {
+              resolution_result:,
+              residential_resolution_result:,
+            },
+          },
+        )
+      end
+
+      it 'logs only the vendor calls made for each stage, in order' do
+        stages = subject.adjudicated_result.extra[:context][:stages]
+
+        expect(stages[:resolution]).to include(
+          attempts: {
+            socure_kyc: failed_result.to_h,
+            instant_verify_ddp: resolution_result.to_h,
+          },
+          attempted_vendors: [:socure_kyc, :instant_verify_ddp],
+          failover_available: true,
+          failover_used: true,
+        )
+        expect(stages[:residential_address]).to include(
+          attempts: { instant_verify_ddp: residential_resolution_result.to_h },
+          attempted_vendors: [:instant_verify_ddp],
+          failover_available: true,
+          failover_used: false,
+        )
+      end
+
+      context 'when both attempts fail with SSN error messages' do
+        let(:ssn_errors) { { ssn: ['Unverified SSN.'] } }
+        let(:failed_result) do
+          Proofing::Resolution::Result.new(
+            success: false, errors: ssn_errors, vendor_name: 'socure_kyc',
+          )
+        end
+        let(:resolution_result) do
+          Proofing::Resolution::Result.new(
+            success: false, errors: ssn_errors, vendor_name: 'instant_verify_ddp',
+          )
+        end
+        let(:analytics) { FakeAnalytics.new }
+        let(:stage_keypaths) do
+          [[:resolution, :errors, :ssn], [:residential_address, :errors, :ssn]]
+        end
+        let(:stage_pii_like_keypaths) do
+          stage_keypaths.map { |keypath| [:proofing_results, :context, :stages, *keypath] }
+        end
+
+        def log_stages(pii_like_keypaths:)
+          stages = subject.adjudicated_result.extra[:context][:stages]
+          analytics.track_event(
+            'Test Event',
+            proofing_results: { context: { stages: } },
+            pii_like_keypaths:,
+          )
+        end
+
+        it 'passes the PII detector when the attempt keypaths are allowlisted' do
+          pii_like_keypaths =
+            stage_pii_like_keypaths + described_class.attempt_pii_keypaths(*stage_keypaths)
+
+          expect { log_stages(pii_like_keypaths:) }.not_to raise_error
+        end
+
+        it 'is flagged by the PII detector without the attempt keypaths' do
+          expect { log_stages(pii_like_keypaths: stage_pii_like_keypaths) }
+            .to raise_error(FakeAnalytics::PiiDetected, /pii key path: .*:attempts/)
+        end
+      end
+    end
+  end
+
   describe '#adjudicated_result' do
     context 'the resolution failure was bypassed' do
       let(:resolution_bypassed) { true }
