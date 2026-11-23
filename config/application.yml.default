@@ -86,7 +86,6 @@ backup_code_user_id_per_ip_max_attempts: 50
 broken_personal_key_window_finish: '2021-09-22T00:00:00Z'
 broken_personal_key_window_start: '2021-07-29T00:00:00Z'
 check_user_password_compromised_enabled: false
-client_assertion_max_lifetime_seconds: 300
 component_previews_embed_frame_ancestors: '[]'
 component_previews_enabled: false
 country_phone_number_overrides: '{}'
@@ -140,6 +139,7 @@ doc_auth_passport_selfie_vendor_lexis_nexis_percent: 100
 doc_auth_passport_selfie_vendor_socure_percent: 0
 doc_auth_passport_selfie_vendor_switching_enabled: false
 doc_auth_passport_vendor_default: 'mock'
+doc_auth_passport_vendor_incode_percent: 0
 doc_auth_passport_vendor_lexis_nexis_ddp_percent: 0
 doc_auth_passport_vendor_lexis_nexis_percent: 100 # note, LN is currently the default vendor
 doc_auth_passport_vendor_socure_percent: 0
@@ -262,9 +262,11 @@ idv_phone_verification_dual_vendor_check_ddp_lexis_nexis_percent: 0
 idv_phone_verification_dual_vendor_check_enabled: false
 idv_phone_verification_dual_vendor_check_socure_percent: 0
 idv_phone_verification_dual_vendor_check_socure_reason_codes: '[]'
+idv_proofing_agent_bypass_wrong_phone_type_enabled: false
 idv_proofing_agent_config: '[]'
 idv_proofing_agent_confirmation_url: ''
 idv_proofing_agent_enabled: false
+idv_proofing_agent_lexisnexis_phone_finder_bypassed_items: '[]'
 idv_proofing_agent_passport_enabled: false
 idv_proofing_agent_phone_vendor: mock
 idv_proofing_agent_proof_user_with_enhanced_profile: false
@@ -273,11 +275,13 @@ idv_proofing_agent_send_failure_email_after_min: 30
 idv_proofing_agent_send_failure_emails_cron: '*/30 * * * *'
 idv_proofing_agent_send_reminder_email_after_hours: 48
 idv_proofing_agent_send_reminder_emails_cron: '0 * * * *'
+idv_proofing_agent_socure_phonerisk_bypassed_reason_codes: '[]'
 idv_rdp_version_default: rdp_v2
 idv_rdp_version_switching_enabled: false
 idv_rdp_version_v2_percent: 100
 idv_rdp_version_v3_percent: 0
 idv_resolution_default_vendor: mock
+idv_resolution_failover_enabled_percent: 0
 idv_resolution_vendor_instant_verify_ddp_percent: 0
 idv_resolution_vendor_instant_verify_percent: 0
 idv_resolution_vendor_socure_kyc_percent: 0
@@ -364,6 +368,7 @@ lexisnexis_threatmetrix_js_public_cert: ''
 lexisnexis_threatmetrix_mock_enabled: true
 lexisnexis_threatmetrix_org_id:
 lexisnexis_threatmetrix_policy:
+lexisnexis_threatmetrix_ssn_hash_hmac_secret_key:
 lexisnexis_threatmetrix_support_code: ABCD
 lexisnexis_threatmetrix_timeout: 1.0
 # TrueID DocAuth Integration
@@ -569,6 +574,8 @@ sp_proofing_events_by_uuid_report_configs: '[]'
 sp_registration_funnel_report_configs: '[]'
 sp_verification_demographics_report_configs: '[]'
 sp_verification_report_configs: '[]'
+ssa_instant_verify_bypass_error_codes: '{}'
+ssa_proofing_agent_socure_kyc_bypass_reason_codes: '[]'
 state_tracking_enabled: true
 sts_consent_expiration_in_days: 365
 team_ada_email: ''
@@ -671,7 +678,7 @@ development:
   s3_data_warehouse_bucket_prefix: ''
   s3_report_bucket_prefix: ''
   s3_report_public_bucket_prefix: ''
-  saml_endpoint_configs: '[{"suffix":"2025","secret_key_passphrase":"trust-but-verify"},{"suffix":"2026","secret_key_passphrase":"trust-but-verify"}]'
+  saml_endpoint_configs: '[{"suffix":"2026","secret_key_passphrase":"trust-but-verify"}]'
   secret_key_base: development_secret_key_base
   session_encryption_key: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
   sign_in_recaptcha_annotation_enabled: true
@@ -753,6 +760,7 @@ test:
   key_metrics_internal_emails: '["mock_key_metrics_int@example.com"]'
   key_metrics_original_external_emails: '["mock_key_metrics_org_ext@example.com"]'
   key_metrics_original_internal_emails: '["mock_key_metrics_org_int@example.com"]'
+  lexisnexis_threatmetrix_ssn_hash_hmac_secret_key: test-threatmetrix-ssn-hmac-secret-key
   lexisnexis_trueid_account_id: 'test_account'
   lockout_period_in_minutes: 5
   logins_per_email_and_ip_limit: 2
@@ -781,7 +789,7 @@ test:
   s3_data_warehouse_bucket_prefix: ''
   s3_report_bucket_prefix: ''
   s3_report_public_bucket_prefix: ''
-  saml_endpoint_configs: '[{"suffix":"2026","secret_key_passphrase":"trust-but-verify"},{"suffix":"2025","secret_key_passphrase":"trust-but-verify","comment":"this extra year is needed to demonstrate how handling multiple live years works in spec/requests/saml_requests_spec.rb"}]'
+  saml_endpoint_configs: '[{"suffix":"2026","secret_key_passphrase":"trust-but-verify"}]'
   scrypt_cost: 800$8$1$
   secret_key_base: test_secret_key_base
   session_encryption_key: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa

@@ -235,7 +235,11 @@ RSpec.describe ProofingAgentJob, type: :job do
                     vendor_name: 'ResolutionMock',
                     vendor_id: nil,
                     vendor_workflow: nil,
-                    verified_attributes: nil },
+                    verified_attributes: nil,
+                    attempts: {},
+                    attempted_vendors: [],
+                    failover_available: false,
+                    failover_used: false },
                   residential_address:
                   { success: true,
                     errors: {},
@@ -250,7 +254,11 @@ RSpec.describe ProofingAgentJob, type: :job do
                     vendor_name: 'ResolutionMock',
                     vendor_id: nil,
                     vendor_workflow: nil,
-                    verified_attributes: nil },
+                    verified_attributes: nil,
+                    attempts: { mock: hash_including(vendor_name: 'ResolutionMock') },
+                    attempted_vendors: ['mock'],
+                    failover_available: false,
+                    failover_used: false },
                   threatmetrix:
                   { client: 'tmx_session_id_missing',
                     success: false,
@@ -462,6 +470,51 @@ RSpec.describe ProofingAgentJob, type: :job do
 
         expect(@analytics).not_to have_logged_event(
           :idv_proofing_agent_profile_confirmation_email_sent,
+        )
+      end
+    end
+
+    context 'when resolution fails over to another vendor' do
+      let(:pii) { Idp::Constants::MOCK_IDV_APPLICANT_SAME_ADDRESS_AS_ID.merge(zipcode: '00000') }
+
+      before do
+        allow(IdentityConfig.store).to receive(:idv_resolution_failover_enabled_percent)
+          .and_return(100)
+        allow_any_instance_of(Proofing::Resolution::ProgressiveProofer)
+          .to receive(:resolution_vendors).and_return([:mock, :instant_verify])
+        allow_any_instance_of(Proofing::Resolution::ProgressiveProofer)
+          .to receive(:create_proofer).and_return(Proofing::Mock::ResolutionMockClient.new)
+      end
+
+      it 'logs every residential address call, with PII-like attempt keypaths allowlisted' do
+        perform
+
+        expect(@analytics).to have_logged_event(
+          'IdV: doc auth verify proofing results',
+          hash_including(
+            success: false,
+            proofing_results: hash_including(
+              context: hash_including(
+                stages: hash_including(
+                  resolution: hash_including(
+                    attempts: {},
+                    attempted_vendors: [],
+                    failover_available: true,
+                    failover_used: false,
+                  ),
+                  residential_address: hash_including(
+                    attempted_vendors: ['mock', 'instant_verify'],
+                    failover_available: true,
+                    failover_used: true,
+                    attempts: hash_including(
+                      mock: hash_including(errors: hash_including(:zipcode)),
+                      instant_verify: hash_including(errors: hash_including(:zipcode)),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
         )
       end
     end
@@ -982,6 +1035,71 @@ RSpec.describe ProofingAgentJob, type: :job do
           correlation_id: correlation_id,
           analytics_attributes: an_instance_of(Hash),
         )
+      end
+    end
+
+    context 'when Socure phone risk returns a bypassed wrong phone type code (R613-R617)' do
+      let(:socure_base_url) { 'https://socure.example.org/' }
+      let(:name_phone_correlation_score) { 0.99 }
+      let(:phone_risk_score) { 0.01 }
+
+      before do
+        allow(IdentityConfig.store).to receive(:idv_proofing_agent_phone_vendor)
+          .and_return(:socure)
+        allow(IdentityConfig.store).to receive(
+          :idv_proofing_agent_bypass_wrong_phone_type_enabled,
+        ).and_return(true)
+        allow(IdentityConfig.store).to receive(:socure_idplus_base_url)
+          .and_return(socure_base_url)
+        allow(IdentityConfig.store).to receive(:socure_idplus_api_key).and_return('test-key')
+        allow(IdentityConfig.store).to receive(
+          :idv_socure_phonerisk_auto_failure_reason_codes,
+        ).and_return(%w[R613 R614 R615 R616 R617 R601])
+        allow(IdentityConfig.store).to receive(
+          :idv_proofing_agent_socure_phonerisk_bypassed_reason_codes,
+        ).and_return(%w[R613 R614 R615 R616 R617])
+
+        stub_request(:post, URI.join(socure_base_url, '/api/3.0/EmailAuthScore').to_s)
+          .to_return(
+            status: 200,
+            headers: { 'Content-Type' => 'application/json' },
+            body: {
+              referenceId: 'socure-voip-ref-123',
+              namePhoneCorrelation: {
+                reasonCodes: ['I618'],
+                score: name_phone_correlation_score,
+              },
+              phoneRisk: {
+                reasonCodes: ['R613'],
+                score: phone_risk_score,
+                signals: { phone: {} },
+              },
+              customerProfile: {
+                customerUserId: user.uuid,
+              },
+            }.to_json,
+          )
+      end
+
+      it 'returns a successful result' do
+        perform
+
+        result = document_capture_session.reload.load_agent_proofed_user
+        expect(result[:success]).to be true
+        expect(result[:reason]).to be_nil
+      end
+
+      context 'when the risk and correlation scores are failing' do
+        let(:name_phone_correlation_score) { 0.01 }
+        let(:phone_risk_score) { 0.99 }
+
+        it 'stores a failed result' do
+          perform
+
+          result = document_capture_session.reload.load_agent_proofed_user
+          expect(result[:success]).to be false
+          expect(result[:reason]).to eq('phone_check_fail')
+        end
       end
     end
 

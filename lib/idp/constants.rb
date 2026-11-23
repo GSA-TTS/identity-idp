@@ -14,6 +14,7 @@ module Idp
       INCODE = 'incode'
       LEXIS_NEXIS = 'lexis_nexis'
       LEXIS_NEXIS_DDP = 'lexis_nexis_ddp'
+      INCODE = 'incode'
       SOCURE = 'socure'
       MOCK = 'mock'
       SOCURE_MOCK = 'mock_socure'
