@@ -70,6 +70,76 @@ RSpec.describe Profile do
     end
   end
 
+  describe '#basic_w_no_gpo?' do
+    it 'returns true if profile is basic with no gpo verification' do
+      profile = create(
+        :profile,
+        :verified,
+        idv_level: :legacy_unsupervised,
+        user: user,
+      )
+
+      expect(profile.basic_w_no_gpo?).to eq(true)
+    end
+
+    it 'returns true if profile is basic and the address was verified by phone' do
+      profile = create(
+        :profile,
+        :verified,
+        idv_level: :legacy_unsupervised,
+        proofing_components: { address_check: 'lexis_nexis_address' },
+        user: user,
+      )
+
+      expect(profile.basic_w_no_gpo?).to eq(true)
+    end
+
+    it 'returns false if profile is basic with gpo verification pending' do
+      profile = create(
+        :profile,
+        :verify_by_mail_pending,
+        idv_level: :legacy_unsupervised,
+        user: user,
+      )
+
+      expect(profile.basic_w_no_gpo?).to eq(false)
+    end
+
+    it 'returns false if profile is basic and was verified by mail' do
+      profile = create(
+        :profile,
+        :verified,
+        idv_level: :legacy_unsupervised,
+        proofing_components: { address_check: 'gpo_letter' },
+        user: user,
+      )
+
+      expect(profile.basic_w_no_gpo?).to eq(false)
+    end
+
+    it 'returns false if profile is enhanced' do
+      profile = create(
+        :profile,
+        :verified,
+        idv_level: :unsupervised_with_selfie,
+        user: user,
+      )
+
+      expect(profile.basic_w_no_gpo?).to eq(false)
+    end
+
+    it 'returns false if profile has no idv level' do
+      profile = create(
+        :profile,
+        :verified,
+        idv_level: nil,
+        user: user,
+      )
+
+      expect(profile.basic_w_no_gpo?).to eq(false)
+    end
+  end
+
   describe '#in_person_verification_pending?' do
     it 'returns true if the in_person_verification_pending_at is present' do
       profile = create(
