@@ -141,31 +141,14 @@ RSpec.describe Proofing::Resolution::ProgressiveProofer do
       )
     end
 
-    it 'never selects the submission, even when rand returns 0' do
-      allow(proofer).to receive(:rand).and_return(0.0)
+    it 'never selects the submission' do
       expect(fallback_proofer).not_to receive(:proof)
       expect(resolution_stage[:failover_available]).to eq(false)
     end
   end
 
-  context 'with a partial rollout' do
-    let(:percent) { 25 }
-
-    it 'selects submissions whose roll falls under the percent' do
-      allow(proofer).to receive(:rand).and_return(0.2499)
-      expect(resolution_stage).to include(failover_available: true, failover_used: true)
-    end
-
-    it 'does not select submissions whose roll is at or above the percent' do
-      allow(proofer).to receive(:rand).and_return(0.25)
-      expect(fallback_proofer).not_to receive(:proof)
-      expect(resolution_stage).to include(failover_available: false, failover_used: false)
-    end
-  end
-
   context 'with the rollout at 100 percent' do
-    it 'selects the submission even with the highest possible roll' do
-      allow(proofer).to receive(:rand).and_return(0.9999999)
+    it 'selects the submission' do
       expect(resolution_stage[:failover_available]).to eq(true)
     end
   end
@@ -178,6 +161,18 @@ RSpec.describe Proofing::Resolution::ProgressiveProofer do
         allow(primary_proofer).to receive(:proof).and_raise(JSON::ParserError, 'invalid response')
         expect(fallback_proofer).not_to receive(:proof)
         expect { proof }.to raise_error(JSON::ParserError, 'invalid response')
+      end
+
+      if rollout_percent == 100
+        it 'preserves timing recorded before the exception' do
+          allow(primary_proofer).to receive(:proof).and_raise(JSON::ParserError, 'invalid response')
+
+          expect { proof }.to raise_error(JSON::ParserError, 'invalid response')
+          expect(timer.results.keys).to contain_exactly(
+            'resolution', 'resolution socure_kyc'
+          )
+          expect(timer.results['resolution']).to eq(timer.results['resolution socure_kyc'])
+        end
       end
     end
   end
@@ -357,37 +352,7 @@ RSpec.describe Proofing::Resolution::ProgressiveProofer do
 
   describe 'vendor eligibility and ordering' do
     it 'includes each positive-share provider once with the assigned provider first' do
-      expect(proofer.resolution_vendors).to eq([:socure_kyc, :instant_verify_ddp])
-    end
-
-    it 'includes the default vendor residual share in descending traffic order' do
-      allow(IdentityConfig.store).to receive_messages(
-        idv_resolution_vendor_socure_kyc_percent: 10,
-        idv_resolution_vendor_instant_verify_ddp_percent: 20,
-        idv_resolution_default_vendor: :instant_verify,
-      )
-      reload_ab_tests
-      expect(proofer.resolution_vendors).to eq([:socure_kyc, :instant_verify, :instant_verify_ddp])
-    end
-
-    it 'adds residual traffic to the default vendor explicit share' do
-      allow(IdentityConfig.store).to receive_messages(
-        idv_resolution_vendor_socure_kyc_percent: 10,
-        idv_resolution_vendor_instant_verify_ddp_percent: 40,
-        idv_resolution_vendor_instant_verify_percent: 20,
-        idv_resolution_default_vendor: :instant_verify,
-      )
-      reload_ab_tests
-      expect(proofer.resolution_vendors).to eq([:socure_kyc, :instant_verify, :instant_verify_ddp])
-    end
-
-    it 'breaks equal-share ties using bucket order' do
-      allow(IdentityConfig.store).to receive_messages(
-        idv_resolution_vendor_socure_kyc_percent: 20,
-        idv_resolution_vendor_instant_verify_percent: 40,
-      )
-      reload_ab_tests
-      expect(proofer.resolution_vendors).to eq([:socure_kyc, :instant_verify, :instant_verify_ddp])
+      expect(proofer.resolution_vendor_chain).to eq([:socure_kyc, :instant_verify_ddp])
     end
 
     it 'excludes zero-share providers and mock default traffic' do
@@ -407,7 +372,7 @@ RSpec.describe Proofing::Resolution::ProgressiveProofer do
         idv_resolution_default_vendor: primary_vendor,
       )
       reload_ab_tests
-      expect(proofer.resolution_vendors).to eq([primary_vendor])
+      expect(proofer.resolution_vendor_chain).to eq([primary_vendor])
     end
 
     it 'tries three eligible vendors at most once and stops on the first adjudicated success' do

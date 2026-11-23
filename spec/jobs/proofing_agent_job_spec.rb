@@ -481,7 +481,7 @@ RSpec.describe ProofingAgentJob, type: :job do
         allow(IdentityConfig.store).to receive(:idv_resolution_failover_enabled_percent)
           .and_return(100)
         allow_any_instance_of(Proofing::Resolution::ProgressiveProofer)
-          .to receive(:resolution_vendors).and_return([:mock, :instant_verify])
+          .to receive(:resolution_vendor_chain).and_return([:mock, :instant_verify])
         allow_any_instance_of(Proofing::Resolution::ProgressiveProofer)
           .to receive(:create_proofer).and_return(Proofing::Mock::ResolutionMockClient.new)
       end
