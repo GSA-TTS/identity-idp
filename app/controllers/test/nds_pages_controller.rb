@@ -1453,7 +1453,9 @@ module Test
     def setup_sts_consent
       user = User.new
       @nds_current_user = user
-      @sts_consent_form = StsConsentForm.new(user:, target_app: 'urn:gov:gsa:test:nds-explorer-sts')
+      @sts_consent_form = StsConsentForm.new(
+        user:, target_app: 'urn:gov:gsa:test:nds-explorer-sts', actor_app: DEV_SP_ISSUER,
+      )
       {}
     end
 
