@@ -5,7 +5,7 @@ module Accounts
     include RememberDeviceConcern
     before_action :confirm_two_factor_authenticated
 
-    account_shell_layout 'account_side_nav'
+    layout 'account_side_nav'
 
     def show
       analytics.connected_services_page_visited
