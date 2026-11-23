@@ -113,6 +113,7 @@ RSpec.describe Idv::ByMail::RequestLetterController do
         resend: false,
         phone_step_attempts: 1,
         hours_since_first_letter: 0,
+        proofing_components: a_kind_of(Hash),
       )
     end
 

@@ -22,7 +22,6 @@ RSpec.describe Idv::MailOnlyWarningController do
     let(:analytics_args) do
       {
         analytics_id: 'Doc Auth',
-        proofing_components: a_kind_of(Hash),
       }
     end
 

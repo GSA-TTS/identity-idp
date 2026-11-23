@@ -984,6 +984,7 @@ RSpec.describe Idv::InPerson::StateIdController do
             flow_path: 'standard',
             step: 'state_id',
             opted_in_to_in_person_proofing: true,
+            proofing_components: a_kind_of(Hash),
           )
         end
 

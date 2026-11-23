@@ -56,6 +56,7 @@ RSpec.describe Idv::InPerson::PassportController do
           step: 'passport',
           analytics_id: 'In Person Proofing',
           skip_hybrid_handoff: false,
+          proofing_components: a_kind_of(Hash),
         }
       end
 

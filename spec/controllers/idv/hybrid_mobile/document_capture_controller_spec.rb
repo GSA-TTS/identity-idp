@@ -59,7 +59,6 @@ RSpec.describe Idv::HybridMobile::DocumentCaptureController do
           step: 'document_capture',
           selfie_check_required: false,
           liveness_checking_required: boolean,
-          proofing_components: a_kind_of(Hash),
         }
       end
 
@@ -208,7 +207,6 @@ RSpec.describe Idv::HybridMobile::DocumentCaptureController do
           step: 'document_capture',
           liveness_checking_required: false,
           selfie_check_required: boolean,
-          proofing_components: a_kind_of(Hash),
         }
       end
 

@@ -352,6 +352,7 @@ RSpec.describe Idv::PhoneController do
           phone_type: :mobile,
           otp_delivery_preference: '🎷',
           types: [],
+          proofing_components: a_kind_of(Hash),
         )
 
         expect(subject.idv_session.vendor_phone_confirmation).to be_falsy
@@ -396,6 +397,7 @@ RSpec.describe Idv::PhoneController do
           phone_type: :mobile,
           otp_delivery_preference: 'sms',
           types: [:fixed_or_mobile],
+          proofing_components: a_kind_of(Hash),
         )
       end
 

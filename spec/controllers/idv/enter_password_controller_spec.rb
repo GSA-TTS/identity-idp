@@ -408,6 +408,7 @@ RSpec.describe Idv::EnterPasswordController do
           fraud_rejection: false,
           gpo_verification_pending: false,
           in_person_verification_pending: false,
+          proofing_components: a_kind_of(Hash),
         )
       end
 
@@ -430,6 +431,7 @@ RSpec.describe Idv::EnterPasswordController do
         gpo_verification_pending: false,
         in_person_verification_pending: false,
         proofing_workflow_time_in_seconds: 5.minutes.to_i,
+        proofing_components: a_kind_of(Hash),
       )
       expect(@analytics).to have_logged_event(
         'IdV: final resolution',
@@ -1300,6 +1302,7 @@ RSpec.describe Idv::EnterPasswordController do
                       gpo_verification_pending: false,
                       in_person_verification_pending: false,
                       proofing_workflow_time_in_seconds: kind_of(Numeric),
+                      proofing_components: a_kind_of(Hash),
                     }.compact,
                   )
                   expect(@analytics).to have_logged_event(
@@ -1312,6 +1315,7 @@ RSpec.describe Idv::EnterPasswordController do
                         fraud_rejection: false,
                         gpo_verification_pending: false,
                         in_person_verification_pending: false,
+                        proofing_components: a_kind_of(Hash),
                       }.compact,
                     ),
                   )
@@ -1368,6 +1372,7 @@ RSpec.describe Idv::EnterPasswordController do
           phone_step_attempts: 1,
           first_letter_requested_at: subject.idv_session.profile.gpo_verification_pending_at,
           hours_since_first_letter: 0,
+          proofing_components: a_kind_of(Hash),
         )
       end
 
@@ -1385,6 +1390,7 @@ RSpec.describe Idv::EnterPasswordController do
             phone_step_attempts: RateLimiter.max_attempts(rate_limit_type),
             first_letter_requested_at: subject.idv_session.profile.gpo_verification_pending_at,
             hours_since_first_letter: 0,
+            proofing_components: a_kind_of(Hash),
           )
         end
       end

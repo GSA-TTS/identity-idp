@@ -59,6 +59,7 @@ RSpec.describe Idv::PhoneErrorsController do
               'IdV: phone error visited',
               hash_including(
                 type: action,
+                proofing_components: a_kind_of(Hash),
               ),
             )
           end
@@ -154,6 +155,7 @@ RSpec.describe Idv::PhoneErrorsController do
           'IdV: phone error visited',
           type: action,
           remaining_submit_attempts: 4,
+          proofing_components: a_kind_of(Hash),
         )
       end
     end
@@ -206,6 +208,7 @@ RSpec.describe Idv::PhoneErrorsController do
           'IdV: phone error visited',
           type: action,
           remaining_submit_attempts: 4,
+          proofing_components: a_kind_of(Hash),
         )
       end
     end
@@ -237,6 +240,7 @@ RSpec.describe Idv::PhoneErrorsController do
             'IdV: phone error visited',
             type: action,
             limiter_expires_at: attempted_at + rate_limit_window,
+            proofing_components: a_kind_of(Hash),
           )
         end
       end

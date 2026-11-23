@@ -86,6 +86,7 @@ RSpec.describe 'Completing all IDV steps', :js, :allow_browser_log do
           'resolution_check' => 'ResolutionMock',
           'residential_resolution_check' => 'ResidentialAddressNotRequired',
           'address_check' => 'lexis_nexis_address',
+          'document_capture_session_uuid' => a_kind_of(String),
           'threatmetrix' => true,
           'threatmetrix_review_status' => 'pass',
         )
@@ -161,6 +162,7 @@ RSpec.describe 'Completing all IDV steps', :js, :allow_browser_log do
           'resolution_check' => 'ResolutionMock',
           'residential_resolution_check' => 'ResidentialAddressNotRequired',
           'address_check' => 'lexis_nexis_address',
+          'document_capture_session_uuid' => a_kind_of(String),
           'threatmetrix' => true,
           'threatmetrix_review_status' => 'pass',
         )
@@ -283,6 +285,7 @@ RSpec.describe 'Completing all IDV steps', :js, :allow_browser_log do
           'resolution_check' => 'ResolutionMock',
           'residential_resolution_check' => 'ResidentialAddressNotRequired',
           'address_check' => 'lexis_nexis_address',
+          'document_capture_session_uuid' => a_kind_of(String),
           'threatmetrix' => true,
           'threatmetrix_review_status' => 'pass',
         )
@@ -354,6 +357,7 @@ RSpec.describe 'Completing all IDV steps', :js, :allow_browser_log do
           'resolution_check' => 'ResolutionMock',
           'residential_resolution_check' => 'ResidentialAddressNotRequired',
           'address_check' => 'lexis_nexis_address',
+          'document_capture_session_uuid' => a_kind_of(String),
           'threatmetrix' => true,
           'threatmetrix_review_status' => 'pass',
         )

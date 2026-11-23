@@ -40,6 +40,7 @@ RSpec.describe Idv::InPerson::ChooseIdTypeController do
             analytics_id: 'In Person Proofing',
             skip_hybrid_handoff: false,
             opted_in_to_in_person_proofing: true,
+            proofing_components: a_kind_of(Hash),
           }
         end
 
@@ -92,6 +93,7 @@ RSpec.describe Idv::InPerson::ChooseIdTypeController do
             analytics_id: 'In Person Proofing',
             skip_hybrid_handoff: false,
             opted_in_to_in_person_proofing: true,
+            proofing_components: a_kind_of(Hash),
           }
         end
 
@@ -159,6 +161,7 @@ RSpec.describe Idv::InPerson::ChooseIdTypeController do
                 opted_in_to_in_person_proofing: true,
                 chosen_id_type: chosen_id_type,
                 success: true,
+                proofing_components: a_kind_of(Hash),
               }
             end
 
@@ -202,6 +205,7 @@ RSpec.describe Idv::InPerson::ChooseIdTypeController do
                 opted_in_to_in_person_proofing: true,
                 chosen_id_type: chosen_id_type,
                 success: true,
+                proofing_components: a_kind_of(Hash),
               }
             end
 
@@ -247,6 +251,7 @@ RSpec.describe Idv::InPerson::ChooseIdTypeController do
               chosen_id_type: '',
               success: false,
               error_details: { chosen_id_type: { invalid: true } },
+              proofing_components: a_kind_of(Hash),
             }
           end
 

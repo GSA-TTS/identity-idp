@@ -10,6 +10,7 @@ RSpec.describe Idv::VerifyInfoController do
       analytics_id: 'Doc Auth',
       flow_path: 'standard',
       step: 'verify',
+      proofing_components: a_kind_of(Hash),
     }
   end
 
@@ -98,6 +99,7 @@ RSpec.describe Idv::VerifyInfoController do
           analytics_id: 'Doc Auth',
           flow_path: 'standard',
           step: 'verify',
+          proofing_components: a_kind_of(Hash),
         },
       )
     end

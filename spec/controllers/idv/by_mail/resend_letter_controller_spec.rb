@@ -73,6 +73,7 @@ RSpec.describe Idv::ByMail::ResendLetterController do
         first_letter_requested_at: user.pending_profile.gpo_verification_pending_at,
         hours_since_first_letter: 24,
         phone_step_attempts: 0,
+        proofing_components: a_kind_of(Hash),
       )
 
       expect(@analytics).to have_logged_event(

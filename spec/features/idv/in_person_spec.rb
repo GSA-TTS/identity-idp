@@ -154,6 +154,7 @@ RSpec.describe 'In Person Proofing', js: true do
       'address_check' => 'lexis_nexis_address',
       'threatmetrix' => true,
       'threatmetrix_review_status' => 'pass',
+      'document_capture_session_uuid' => a_kind_of(String),
     )
     expect(ipp_profile.decrypt_pii(user.password)).to have_attributes(
       first_name: InPersonHelper::GOOD_FIRST_NAME,
