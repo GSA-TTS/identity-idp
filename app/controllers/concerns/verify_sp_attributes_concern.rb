@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 module VerifySpAttributesConcern
+  include IdvResolutionStepdownConcern
+
   def needs_completion_screen_reason
     return nil if sp_session[:issuer].blank?
     return nil if sp_session[:request_url].blank?
@@ -121,13 +123,13 @@ module VerifySpAttributesConcern
   end
 
   def requested_attributes_verified?(sp_session_identity)
-    unverified_attributes = Array(
-      sp_session[:requested_attributes],
-    ) - sp_session_identity.verified_attributes.to_a
-    if request_has_stepped_down?
-      unverified_attributes.delete('verified_at')
-    end
+    return false unless sp_session_identity
 
-    sp_session_identity && unverified_attributes.empty?
+    unverified_attributes =
+      Array(sp_session[:requested_attributes]) - sp_session_identity.verified_attributes.to_a
+
+    unverified_attributes.delete('verified_at') if request_has_stepped_down?
+
+    unverified_attributes.empty?
   end
 end

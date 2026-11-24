@@ -122,8 +122,9 @@ module Idv
         redirect_to address_warning_url
       elsif (failures.has_exception? && failures.threatmetrix_exception?) ||
             (!failures.has_exception? && failures.resolution_failed?)
+
         idv_failure_log_warning
-        if identity_resolution_stepdown_eligible?(failures:)
+        if identity_resolution_stepdown_eligible?
           return handle_identity_resolution_stepdown
         end
         redirect_to warning_url
@@ -136,18 +137,8 @@ module Idv
       end
     end
 
-    def identity_resolution_stepdown_eligible?(failures:)
-      resolved_authn_context_result.idv_resolution_stepdown_eligible? &&
-        # doc auth must pass and be valid
-        doc_auth_passed_with_valid_vendor? &&
-        # we only want to step down if resolution is the ONLY failed step.
-        failures.failed_stages == [:resolution]
-    end
-
-    def doc_auth_passed_with_valid_vendor?
-      idv_session.source_check_vendor.present? &&
-        idv_session.source_check_vendor != Idp::Constants::Vendors::AAMVA_UNSUPPORTED_JURISDICTION &&
-        idv_session.source_check_vendor != Idp::Constants::Vendors::AAMVA_CHECK_SKIPPED
+    def identity_resolution_stepdown_eligible?
+      resolved_authn_context_result.idv_resolution_stepdown_eligible?
     end
 
     def handle_identity_resolution_stepdown

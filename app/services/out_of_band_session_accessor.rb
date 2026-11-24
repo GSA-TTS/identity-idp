@@ -97,7 +97,7 @@ class OutOfBandSessionAccessor
   # @api private
   # Only used for convenience in tests
   # @param [Pii::Attributes] pii
-  # @param [#to_s] profile_id
+  # @param [#to_s] issuer string
   def put_idv_resolution_stepdown(issuer:, pii:, expiration: 5.minutes)
     data = {
       idv_resolution_stepdown: {
