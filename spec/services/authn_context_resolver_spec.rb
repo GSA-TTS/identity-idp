@@ -250,6 +250,107 @@ RSpec.describe AuthnContextResolver do
         end
       end
 
+      context 'when identity resolution stepdown is configured' do
+        before do
+          allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
+            .and_return(allowed_issuers)
+        end
+
+        context 'when the service provider is allowlisted' do
+          let(:allowed_issuers) { [service_provider.issuer] }
+
+          context 'with an explicit IdV with facial match request' do
+            let(:acr_values) do
+              [
+                Saml::Idp::Constants::IAL2_BIO_REQUIRED_AUTHN_CONTEXT_CLASSREF,
+                Saml::Idp::Constants::DEFAULT_AAL_AUTHN_CONTEXT_CLASSREF,
+              ].join(' ')
+            end
+
+            it 'sets idv_resolution_stepdown_eligible? to true' do
+              expect(result.idv_resolution_stepdown_eligible?).to be true
+            end
+
+            context 'when the user does not have a profile on the service provider' do
+              it 'asserts an auth-only IAL level' do
+                expect(result.identity_proofing?).to be true
+                expect(result.aal2?).to be true
+                expect(subject.asserted_ial_acr)
+                  .to eq(Saml::Idp::Constants::IAL1_AUTHN_CONTEXT_CLASSREF)
+              end
+            end
+
+            context 'when user has an active profile initiated by the service provider' do
+              before do
+                create(:profile, :active, user:, initiating_service_provider: service_provider)
+              end
+              it 'keeps the normal IAL2 request requirements' do
+                expect(result.identity_proofing?).to be true
+                expect(result.aal2?).to be true
+                expect(subject.asserted_ial_acr)
+                  .to eq(Saml::Idp::Constants::IAL2_BIO_REQUIRED_AUTHN_CONTEXT_CLASSREF)
+              end
+            end
+          end
+
+          context 'with no IAL ACR present' do
+            let(:acr_values) do
+              [
+                Saml::Idp::Constants::DEFAULT_AAL_AUTHN_CONTEXT_CLASSREF,
+              ].join(' ')
+            end
+
+            context 'with a SP that has a default of basic identity verification' do
+              it 'does not mark the request eligible' do
+                expect(result.identity_proofing?).to be true
+                expect(result.facial_match?).to be false
+                expect(result.idv_resolution_stepdown_eligible?).to be false
+              end
+            end
+          end
+
+          context 'with an auth-only request' do
+            let(:acr_values) do
+              [
+                Saml::Idp::Constants::IAL1_AUTHN_CONTEXT_CLASSREF,
+                Saml::Idp::Constants::DEFAULT_AAL_AUTHN_CONTEXT_CLASSREF,
+              ].join(' ')
+            end
+
+            it 'does not mark the request eligible' do
+              expect(result.idv_resolution_stepdown_eligible?).to be false
+            end
+          end
+
+          context 'with a basic idv request' do
+            let(:acr_values) do
+              [
+                Saml::Idp::Constants::IAL2_AUTHN_CONTEXT_CLASSREF,
+                Saml::Idp::Constants::DEFAULT_AAL_AUTHN_CONTEXT_CLASSREF,
+              ].join(' ')
+            end
+
+            it 'sets idv_resolution_stepdown_eligible? to false' do
+              expect(result.idv_resolution_stepdown_eligible?).to be false
+            end
+          end
+        end
+
+        context 'when the service provider is not allowlisted' do
+          let(:allowed_issuers) { [] }
+          let(:acr_values) do
+            [
+              Saml::Idp::Constants::IAL2_BIO_REQUIRED_AUTHN_CONTEXT_CLASSREF,
+              Saml::Idp::Constants::DEFAULT_AAL_AUTHN_CONTEXT_CLASSREF,
+            ].join(' ')
+          end
+
+          it 'sets idv_resolution_stepdown_eligible? to false' do
+            expect(result.idv_resolution_stepdown_eligible?).to be false
+          end
+        end
+      end
+
       context 'when requesting facial match comparison' do
         let(:bio_acr_value) do
           Saml::Idp::Constants::IAL2_BIO_REQUIRED_AUTHN_CONTEXT_CLASSREF
@@ -579,6 +680,94 @@ RSpec.describe AuthnContextResolver do
           it 'ignores the unknown value and uses the highest IAL ACR' do
             expect(result.identity_proofing?).to eq(true)
             expect(result.aal2?).to eq(true)
+          end
+        end
+      end
+
+      context 'when identity resolution stepdown is configured' do
+        before do
+          allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
+            .and_return(allowed_issuers)
+        end
+
+        context 'when the service provider is allowlisted' do
+          let(:allowed_issuers) { [service_provider.issuer] }
+
+          context 'with an explicit IdV with facial match request' do
+            let(:acr_values) do
+              [
+                Saml::Idp::Constants::IAL_VERIFIED_FACIAL_MATCH_REQUIRED_ACR,
+                Saml::Idp::Constants::DEFAULT_AAL_AUTHN_CONTEXT_CLASSREF,
+              ]
+            end
+
+            it 'sets idv_resolution_stepdown_eligible? to true' do
+              expect(result.idv_resolution_stepdown_eligible?).to be true
+            end
+
+            context 'when the user does not have a profile on the service provider' do
+              it 'asserts an auth-only IAL level' do
+                expect(result.identity_proofing?).to be true
+                expect(result.aal2?).to be true
+                expect(subject.asserted_ial_acr)
+                  .to eq(Saml::Idp::Constants::IAL_AUTH_ONLY_ACR)
+              end
+            end
+
+            context 'when user has an active profile initiated by the service provider' do
+              before do
+                create(:profile, :active, user:, initiating_service_provider: service_provider)
+              end
+              it 'keeps the normal IAL2 request requirements' do
+                expect(result.identity_proofing?).to be true
+                expect(result.aal2?).to be true
+                expect(subject.asserted_ial_acr)
+                  .to eq(Saml::Idp::Constants::IAL_VERIFIED_FACIAL_MATCH_REQUIRED_ACR)
+              end
+            end
+          end
+
+          context 'with no IAL ACR present' do
+            let(:acr_values) do
+              [
+                Saml::Idp::Constants::DEFAULT_AAL_AUTHN_CONTEXT_CLASSREF,
+              ]
+            end
+
+            context 'with a SP that has a default of basic identity verification' do
+              it 'does not mark the request eligible' do
+                expect(result.identity_proofing?).to be true
+                expect(result.facial_match?).to be false
+                expect(result.idv_resolution_stepdown_eligible?).to be false
+              end
+            end
+          end
+
+          context 'with an auth-only request' do
+            let(:acr_values) do
+              [
+                Saml::Idp::Constants::IAL_AUTH_ONLY_ACR,
+                Saml::Idp::Constants::DEFAULT_AAL_AUTHN_CONTEXT_CLASSREF,
+              ]
+            end
+
+            it 'does not mark the request eligible' do
+              expect(result.idv_resolution_stepdown_eligible?).to be false
+            end
+          end
+        end
+
+        context 'when the service provider is not allowlisted' do
+          let(:allowed_issuers) { [] }
+          let(:acr_values) do
+            [
+              Saml::Idp::Constants::IAL_VERIFIED_ACR,
+              Saml::Idp::Constants::DEFAULT_AAL_AUTHN_CONTEXT_CLASSREF,
+            ]
+          end
+
+          it 'sets idv_resolution_stepdown_eligible? to false' do
+            expect(result.idv_resolution_stepdown_eligible?).to be false
           end
         end
       end
