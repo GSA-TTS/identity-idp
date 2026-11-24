@@ -52,6 +52,57 @@ RSpec.describe OutOfBandSessionAccessor do
     end
   end
 
+  describe '#load_idv_resolution_stepdown_pii' do
+    let(:issuer) { 'urn:gov:gsa:openidconnect:test' }
+    let(:other_issuer) { 'urn:gov:gsa:openidconnect:other' }
+    let(:stepdown_pii) do
+      {
+        first_name: 'Jane',
+        last_name: 'Doe',
+        dob: '1970-01-01',
+        ssn: '666661234',
+        address1: '123 Main St',
+        city: 'Washington',
+        state: 'DC',
+        zipcode: '20001',
+      }
+    end
+
+    it 'loads identity resolution stepdown data for the matching issuer' do
+      writer_instance.put_idv_resolution_stepdown(
+        issuer:,
+        pii: stepdown_pii,
+        expiration: 5.minutes.in_seconds,
+      )
+
+      stepdown = store.load_idv_resolution_stepdown_pii(issuer:)
+      binding.pry
+
+      aggregate_failures do
+        expect(stepdown[:pii]).to be_kind_of(Pii::Attributes)
+        expect(stepdown[:pii].first_name).to eq('Jane')
+        expect(stepdown[:pii].ssn).to eq('666661234')
+        expect(stepdown[:identity_resolution]).to eq('failed')
+      end
+    end
+
+    it 'does not load identity resolution stepdown data for another issuer' do
+      writer_instance.put_idv_resolution_stepdown(
+        issuer:,
+        pii: stepdown_pii,
+        expiration: 5.minutes.in_seconds,
+      )
+
+      expect(store.load_idv_resolution_stepdown_pii(issuer: other_issuer)).to be_nil
+    end
+
+    it 'does not load identity resolution stepdown data without a stored handoff' do
+      writer_instance.put_locale('en')
+
+      expect(store.load_idv_resolution_stepdown_pii(issuer:)).to be_nil
+    end
+  end
+
   describe '#load_x509' do
     it 'loads X509 attributes from the session' do
       writer_instance.put_x509({ subject: 'O=US, OU=DoD, CN=John.Doe.1234' }, 5.minutes.in_seconds)
