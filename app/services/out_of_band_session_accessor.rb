@@ -47,12 +47,7 @@ class OutOfBandSessionAccessor
 
   # @return [Pii::Attributes, nil]
   def load_idv_resolution_stepdown_pii(issuer:)
-    data = load_idv_resolution_stepdown(issuer:)
-    return if data.blank? || data[:encrypted_pii].blank?
-
-    pii_json = SessionEncryptor.new.kms_decrypt(data[:encrypted_pii])
-
-    Pii::Attributes.new_from_hash(JSON.parse(pii_json, symbolize_names: true))
+    IdvResolutionStepdownConcern.pii_from(load_idv_resolution_stepdown(issuer:), issuer:)
   end
 
   # @return [String, nil]

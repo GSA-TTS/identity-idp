@@ -16,7 +16,6 @@ class AuthnContextResolver
   end
 
   def asserted_ial_acr
-    return resolve_acr(Saml::Idp::Constants::IAL1_AUTHN_CONTEXT_CLASSREF) if result_is_stepped_down?
     return resolve_acr(Saml::Idp::Constants::IAL1_AUTHN_CONTEXT_CLASSREF) unless
       user&.identity_verified?
 
