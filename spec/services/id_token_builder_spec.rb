@@ -107,9 +107,12 @@ RSpec.describe IdTokenBuilder do
           allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
             .and_return([service_provider.issuer])
           allow_any_instance_of(OutOfBandSessionAccessor)
-            .to receive(:load_idv_resolution_stepdown_pii)
+            .to receive(:load_idv_resolution_stepdown)
             .with(issuer: service_provider.issuer)
-            .and_return(Pii::Attributes.new_from_hash(first_name: 'Jane'))
+            .and_return(
+              pii: Pii::Attributes.new_from_hash(first_name: 'Jane'),
+              identity_resolution: 'failed',
+            )
         end
 
         it 'sets the acr to IAL1' do
