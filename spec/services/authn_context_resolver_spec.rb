@@ -280,15 +280,30 @@ RSpec.describe AuthnContextResolver do
               end
             end
 
-            context 'when user has an active profile initiated by the service provider' do
-              before do
-                create(:profile, :active, user:, initiating_service_provider: service_provider)
+            context 'when the user has an active profile' do
+              context 'that was initiated by the service provider' do
+                before do
+                  create(:profile, :active, user:, initiating_service_provider: service_provider)
+                end
+                it 'keeps the normal IAL2 request requirements' do
+                  expect(result.identity_proofing?).to be true
+                  expect(result.aal2?).to be true
+                  expect(subject.asserted_ial_acr)
+                    .to eq(Saml::Idp::Constants::IAL2_BIO_REQUIRED_AUTHN_CONTEXT_CLASSREF)
+                end
               end
-              it 'keeps the normal IAL2 request requirements' do
-                expect(result.identity_proofing?).to be true
-                expect(result.aal2?).to be true
-                expect(subject.asserted_ial_acr)
-                  .to eq(Saml::Idp::Constants::IAL2_BIO_REQUIRED_AUTHN_CONTEXT_CLASSREF)
+
+              context 'that was not intiated by a different service provider' do
+                let(:sp2) { build(:service_provider, ial: 2) }
+                before do
+                  create(:profile, :active, user:, initiating_service_provider: sp2)
+                end
+                it 'keeps the normal IAL2 request requirements' do
+                  expect(result.identity_proofing?).to be true
+                  expect(result.aal2?).to be true
+                  expect(subject.asserted_ial_acr)
+                    .to eq(Saml::Idp::Constants::IAL2_BIO_REQUIRED_AUTHN_CONTEXT_CLASSREF)
+                end
               end
             end
           end
@@ -714,15 +729,32 @@ RSpec.describe AuthnContextResolver do
               end
             end
 
-            context 'when user has an active profile initiated by the service provider' do
-              before do
-                create(:profile, :active, user:, initiating_service_provider: service_provider)
+            context 'when the user has an active profile' do
+              context 'that was initiated by the service provider' do
+                before do
+                  create(:profile, :active, user:, initiating_service_provider: service_provider)
+                end
+
+                it 'keeps the normal IAL2 request requirements' do
+                  expect(result.identity_proofing?).to be true
+                  expect(result.aal2?).to be true
+                  expect(subject.asserted_ial_acr)
+                    .to eq(Saml::Idp::Constants::IAL_VERIFIED_FACIAL_MATCH_REQUIRED_ACR)
+                end
               end
-              it 'keeps the normal IAL2 request requirements' do
-                expect(result.identity_proofing?).to be true
-                expect(result.aal2?).to be true
-                expect(subject.asserted_ial_acr)
-                  .to eq(Saml::Idp::Constants::IAL_VERIFIED_FACIAL_MATCH_REQUIRED_ACR)
+
+              context 'that was not intiated by a different service provider' do
+                let(:sp2) { build(:service_provider, ial: 2) }
+                before do
+                  create(:profile, :active, user:, initiating_service_provider: sp2)
+                end
+
+                it 'keeps the normal IAL2 request requirements' do
+                  expect(result.identity_proofing?).to be true
+                  expect(result.aal2?).to be true
+                  expect(subject.asserted_ial_acr)
+                    .to eq(Saml::Idp::Constants::IAL_VERIFIED_FACIAL_MATCH_REQUIRED_ACR)
+                end
               end
             end
           end
