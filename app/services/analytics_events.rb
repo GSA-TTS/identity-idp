@@ -2553,6 +2553,10 @@ module AnalyticsEvents
   # @option proofing_results [String,nil] context.stages.resolution.vendor_id Vendor's internal ID for resolution proofing requests, e.g. socureId
   # @option proofing_results [String] context.stages.resolution.vendor_name Vendor used (e.g. lexisnexis:instant_verify)
   # @option proofing_results [String] context.stages.resolution.vendor_workflow ID of workflow or configuration the vendor used for this transaction
+  # @option proofing_results [Hash] context.stages.resolution.attempts Every resolution vendor call for this stage, including the final call also shown at the top level of the stage. Keyed by internal proofing vendor identifier (e.g. socure_kyc, instant_verify_ddp), which differs from the vendor-reported vendor_name inside each entry. Each entry has the same shape as the stage itself. Each vendor appears at most once. Order is given by attempted_vendors, since object keys are unordered. Empty for in-person proofing with matching addresses, where the residential address call also covers the state ID address.
+  # @option proofing_results [Array<String>] context.stages.resolution.attempted_vendors Internal proofing vendor identifiers called for this stage, in the order they were called. Values are the keys of attempts.
+  # @option proofing_results [Boolean] context.stages.resolution.failover_available Whether failover could have run for this submission. True only when the submission was selected by the idv_resolution_failover_enabled_percent rollout and at least one other eligible vendor existed.
+  # @option proofing_results [Boolean] context.stages.resolution.failover_used Whether more than one vendor was called for this stage.
   # @option proofing_results [Boolean] context.stages.residential_address.success Whether the residential address passed proofing
   # @option proofing_results [Hash] context.stages.residential_address.errors Object holding error details returned by the residential address proofing vendor.
   # @option proofing_results [String,nil] context.stages.residential_address.exception If an exception occured during residential address verification its message is provided here
@@ -2564,6 +2568,10 @@ module AnalyticsEvents
   # @option proofing_results [String,nil] context.stages.residential_address.vendor_id Vendor's internal ID for residential address proofing requests, e.g. socureId
   # @option proofing_results [String] context.stages.residential_address.vendor_name Vendor used for residential address proofing
   # @option proofing_results [String] context.stages.residential_address.vendor_workflow Vendor-specific workflow or configuration ID associated with the request made.
+  # @option proofing_results [Hash] context.stages.residential_address.attempts Every residential address vendor call for this stage, structured the same as context.stages.resolution.attempts. Empty outside in-person proofing, where no residential address call is made.
+  # @option proofing_results [Array<String>] context.stages.residential_address.attempted_vendors Internal proofing vendor identifiers called for this stage, in the order they were called. Values are the keys of attempts.
+  # @option proofing_results [Boolean] context.stages.residential_address.failover_available Same value as context.stages.resolution.failover_available.
+  # @option proofing_results [Boolean] context.stages.residential_address.failover_used Whether more than one vendor was called for this stage.
   # @option proofing_results [Hash] context.stages.threatmetrix Object holding details about the call made to the device profiling vendor
   # @option proofing_results [String] context.stages.threatmetrix.client Identifier string indicating which client was used.
   # @option proofing_results [Boolean] context.stages.threatmetrix.success Whether the request to the vendor succeeded.
@@ -5585,6 +5593,11 @@ module AnalyticsEvents
     )
   end
 
+  # The user reached the NDS dead end because identity verification requires a U.S. phone number
+  def idv_phone_required_visited(**extra)
+    track_event(:idv_phone_required_visited, **extra)
+  end
+
   # @param [Hash,nil] proofing_components User's current proofing components
   # @option proofing_components [String,nil] 'document_check' Vendor that verified the user's ID
   # @option proofing_components [String,nil] 'document_type_received' Type of ID detected by vendor
@@ -6442,6 +6455,8 @@ module AnalyticsEvents
   # be verified by another vendor
   # @param [Array<String>, nil] source_attribution List of sources that contributed to the
   # resolution proofing result
+  # @param [Array<String>, nil] bypassed_reason_codes List of error reason codes that were
+  # bypassed due to ssa
   # @param [String, nil] vendor_name Vendor used
   # @param [String] vendor_id ID of vendor
   # @param [String] vendor_workflow ID of workflow or configuration the vendor used for this
@@ -6458,6 +6473,7 @@ module AnalyticsEvents
     can_pass_with_additional_verification:,
     attributes_requiring_additional_verification:,
     source_attribution:,
+    bypassed_reason_codes:,
     vendor_name:,
     vendor_id:,
     vendor_workflow:,
@@ -6476,6 +6492,7 @@ module AnalyticsEvents
       can_pass_with_additional_verification:,
       attributes_requiring_additional_verification:,
       source_attribution:,
+      bypassed_reason_codes:,
       vendor_name:,
       vendor_id:,
       vendor_workflow:,
@@ -6546,6 +6563,8 @@ module AnalyticsEvents
   # @param [Hash] customer_profile socure customer profile
   # @param [String] customer_user_id user uuid sent to Socure
   # @param [Hash] decision accept or reject of given ID
+  # @param [Hash, nil] digital_intelligence Socure device, network, and behavioral data
+  # @param [Array<Hash>, nil] digital_intelligence_errors Socure Digital Intelligence errors
   # @param [Boolean] doc_auth_success
   # @param [Boolean] doc_type_supported
   # @param [Hash] document_metadata Data about the document that was submitted
@@ -6589,6 +6608,8 @@ module AnalyticsEvents
     customer_profile: nil,
     customer_user_id: nil,
     decision: nil,
+    digital_intelligence: nil,
+    digital_intelligence_errors: nil,
     document_metadata: nil,
     docv_transaction_token: nil,
     expiration_date: nil,
@@ -6619,6 +6640,8 @@ module AnalyticsEvents
       customer_profile:,
       customer_user_id:,
       decision:,
+      digital_intelligence:,
+      digital_intelligence_errors:,
       doc_auth_success:,
       doc_type_supported:,
       document_metadata:,
@@ -7785,7 +7808,7 @@ module AnalyticsEvents
   # @param [Integer, nil] expires_in Time to expiration of the delegated access token
   # @param [Integer, nil] ial IAL level recorded on the subject token
   # @param [String, nil] token_exchange_stage Token exchange flow stage
-  # @param [Array<String>, nil] token_exchange_scopes Requested token_exchange scope suffixes
+  # @param [Array<String>, nil] token_exchange_resource Requested token_exchange scope suffixes
   # @param [String, nil] subject_token_fingerprint Fingerprint of the submitted subject token
   # @param [String, nil] delegation_id Internal delegated-token issuance identifier
   # @param [String, nil] oauth_error_code Protocol-level OAuth error code returned for
@@ -7803,7 +7826,7 @@ module AnalyticsEvents
     errors: nil,
     error_details: nil,
     token_exchange_stage: nil,
-    token_exchange_scopes: nil,
+    token_exchange_resource: nil,
     subject_token_fingerprint: nil,
     delegation_id: nil,
     oauth_error_code: nil,
@@ -7822,7 +7845,7 @@ module AnalyticsEvents
       expires_in:,
       ial:,
       token_exchange_stage:,
-      token_exchange_scopes:,
+      token_exchange_resource:,
       subject_token_fingerprint:,
       delegation_id:,
       oauth_error_code:,
@@ -7851,7 +7874,7 @@ module AnalyticsEvents
   #   can produce a subject token
   # @param [Boolean, nil] token_exchange_requested Whether the authorize request included a
   #   token_exchange scope
-  # @param [Array<String>, nil] token_exchange_scopes Requested token_exchange scope suffixes
+  # @param [String, nil] token_exchange_resource Requested token_exchange resource
   def openid_connect_request_authorization(
     success:,
     prompt:,
@@ -7869,7 +7892,7 @@ module AnalyticsEvents
     unknown_authn_contexts: nil,
     token_exchange_stage: nil,
     token_exchange_requested: nil,
-    token_exchange_scopes: nil,
+    token_exchange_resource: nil,
     **extra
   )
     track_event(
@@ -7890,7 +7913,7 @@ module AnalyticsEvents
       unknown_authn_contexts:,
       token_exchange_stage:,
       token_exchange_requested:,
-      token_exchange_scopes:,
+      token_exchange_resource:,
       **extra,
     )
   end
@@ -7909,7 +7932,7 @@ module AnalyticsEvents
   # @param [String, nil] token_exchange_stage Token exchange flow stage
   # @param [String, nil] token_endpoint_operation Token endpoint operation
   #   (authorization_code or subject_token)
-  # @param [Array<String>, nil] token_exchange_scopes Requested token_exchange scope suffixes
+  # @param [String, nil] token_exchange_resource Requested token_exchange resource
   # @param [String, nil] subject_token_fingerprint Fingerprint of the issued subject token
   # @param [Boolean, nil] dpop_bound Whether the client's tokens are bound to a key it holds, so a
   #   DPoP proof was required with this request
@@ -7925,7 +7948,7 @@ module AnalyticsEvents
     error_details: nil,
     token_exchange_stage: nil,
     token_endpoint_operation: nil,
-    token_exchange_scopes: nil,
+    token_exchange_resource: nil,
     subject_token_fingerprint: nil,
     dpop_bound: nil,
     **extra
@@ -7943,7 +7966,7 @@ module AnalyticsEvents
       service_provider_pkce:,
       token_exchange_stage:,
       token_endpoint_operation:,
-      token_exchange_scopes:,
+      token_exchange_resource:,
       subject_token_fingerprint:,
       dpop_bound:,
       **extra,
@@ -9217,15 +9240,17 @@ module AnalyticsEvents
   end
 
   # Tracks when a user's STS (token exchange) consent is revoked
-  # @param [String] target_app Issuer of the target app the consent was revoked for
-  def sts_revoke_consent_revoked(target_app:, **extra)
-    track_event(:sts_revoke_consent_revoked, target_app:, **extra)
+  # @param [String] target_issuer Issuer of the target app the consent was revoked for
+  # @param [String] actor_issuer Issuer of the actor app the consent was revoked for
+  def sts_revoke_consent_revoked(target_issuer:, actor_issuer:, **extra)
+    track_event(:sts_revoke_consent_revoked, target_issuer:, actor_issuer:, **extra)
   end
 
   # Tracks when the page to revoke an STS (token exchange) consent is visited
-  # @param [String] target_app Issuer of the target app the consent would be revoked for
-  def sts_revoke_consent_visited(target_app:, **extra)
-    track_event(:sts_revoke_consent_visited, target_app:, **extra)
+  # @param [String] target_issuer Issuer of the target app the consent would be revoked for
+  # @param [String] actor_issuer Issuer of the actor app the consent would be revoked for
+  def sts_revoke_consent_visited(target_issuer:, actor_issuer:, **extra)
+    track_event(:sts_revoke_consent_visited, target_issuer:, actor_issuer:, **extra)
   end
 
   # Tracks when user clicks on same tab that user landed on.
