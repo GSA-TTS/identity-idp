@@ -330,11 +330,13 @@ RSpec.describe OpenidConnectUserInfoPresenter do
         before do
           allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
             .and_return([service_provider.issuer])
-          OutOfBandSessionAccessor.new(rails_session_id).put_idv_resolution_stepdown(
-            issuer: service_provider.issuer,
-            pii: stepdown_pii,
-            expiration: 5.minutes.in_seconds,
-          )
+          if stepdown_pii.present?
+            OutOfBandSessionAccessor.new(rails_session_id).put_idv_resolution_stepdown(
+              issuer: service_provider.issuer,
+              pii: stepdown_pii,
+              expiration: 5.minutes.in_seconds,
+            )
+          end
         end
 
         it 'returns requested attributes from the stepdown payload' do
@@ -393,7 +395,25 @@ RSpec.describe OpenidConnectUserInfoPresenter do
               expect(user_info).to_not have_key(:address)
               expect(user_info).to_not have_key(:phone)
               expect(user_info).to_not have_key(:social_security_number)
-              expect(user_info).to_not have_key(:verification_status)
+              expect(user_info).to_not have_key(:identity_resolution)
+            end
+          end
+        end
+
+        context 'with stored stepdown data for another issuer' do
+          before do
+            OutOfBandSessionAccessor.new(rails_session_id).put_idv_resolution_stepdown(
+              issuer: 'urn:gov:gsa:openidconnect:other',
+              pii: stepdown_pii,
+              expiration: 5.minutes.in_seconds,
+            )
+          end
+
+          it 'does not return stepdown attributes' do
+            aggregate_failures do
+              expect(user_info).to_not have_key(:given_name)
+              expect(user_info).to_not have_key(:social_security_number)
+              expect(user_info).to_not have_key(:identity_resolution)
             end
           end
         end

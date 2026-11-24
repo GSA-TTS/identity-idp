@@ -34,7 +34,7 @@ module OpenidConnect
         return redirect_to reactivate_account_url if user_needs_to_reactivate_account?
         return redirect_to url_for_pending_profile_reason if user_has_pending_profile?
         if identity_needs_verification? || facial_match_needed?
-          return redirect_to idv_url
+          return redirect_to idv_url unless request_has_stepped_down?
         end
         if needs_to_reproof?
           track_reproof_redirect
@@ -350,6 +350,11 @@ module OpenidConnect
         service_provider: current_sp,
         resolved_authn_context_result: resolved_authn_context_result,
       )
+    end
+
+    def request_has_stepped_down?
+      resolved_authn_context_result.idv_resolution_stepdown_eligible? &&
+        user_session[:idv_resolution_stepdown].present?
     end
   end
 end

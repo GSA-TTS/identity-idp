@@ -121,8 +121,13 @@ module VerifySpAttributesConcern
   end
 
   def requested_attributes_verified?(sp_session_identity)
-    sp_session_identity && (
-      Array(sp_session[:requested_attributes]) - sp_session_identity.verified_attributes.to_a
-    ).empty?
+    unverified_attributes = Array(
+      sp_session[:requested_attributes],
+    ) - sp_session_identity.verified_attributes.to_a
+    if request_has_stepped_down?
+      unverified_attributes.delete('verified_at')
+    end
+
+    sp_session_identity && unverified_attributes.empty?
   end
 end
