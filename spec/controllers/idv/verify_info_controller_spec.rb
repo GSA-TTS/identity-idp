@@ -1309,18 +1309,25 @@ RSpec.describe Idv::VerifyInfoController do
       context 'with an identity resolution stepdown request' do
         before { stub_idv_resolution_stepdown_request }
 
-        it 'stores the stepdown payload' do
+        it 'stores encrypted stepdown PII' do
           get :show
 
           stepdown = controller.user_session[:idv_resolution_stepdown]
-          expect(stepdown).to include(
-            issuer: idv_resolution_stepdown_sp.issuer,
-            pii: hash_including(
+          decrypted_pii = JSON.parse(
+            SessionEncryptor.new.kms_decrypt(stepdown[:encrypted_pii]),
+            symbolize_names: true,
+          )
+
+          aggregate_failures do
+            expect(stepdown).to include(issuer: idv_resolution_stepdown_sp.issuer)
+            expect(stepdown).to have_key(:encrypted_pii)
+            expect(stepdown).not_to have_key(:pii)
+            expect(decrypted_pii).to include(
               first_name: applicant_pii[:first_name],
               last_name: applicant_pii[:last_name],
               ssn: applicant_pii[:ssn],
-            ),
-          )
+            )
+          end
         end
 
         it 'redirects back to authorize' do

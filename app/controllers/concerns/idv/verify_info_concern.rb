@@ -152,7 +152,7 @@ module Idv
     def handle_identity_resolution_stepdown
       user_session[:idv_resolution_stepdown] = {
         issuer: current_sp.issuer,
-        pii: identity_resolution_stepdown_pii,
+        encrypted_pii: SessionEncryptor.new.kms_encrypt(identity_resolution_stepdown_pii.to_json),
       }
 
       idv_session.clear
