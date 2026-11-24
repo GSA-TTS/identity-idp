@@ -259,6 +259,48 @@ RSpec.describe OpenidConnect::AuthorizationController do
               )
             end
 
+            context 'identity resolution stepdown' do
+              let(:acr_values) { Saml::Idp::Constants::IAL_VERIFIED_FACIAL_MATCH_REQUIRED_ACR }
+              let(:user) { create(:user, :fully_registered) }
+
+              before do
+                allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
+                  .and_return([service_provider.issuer])
+                allow(IdentityConfig.store).to receive(:openid_connect_redirect)
+                  .and_return('server_side')
+              end
+
+              context 'with stored stepdown data for the issuer' do
+                before do
+                  IdentityLinker.new(user, service_provider).link_identity(ial: 1)
+                  user.identities.last.update!(
+                    verified_attributes: %w[given_name family_name birthdate],
+                    last_consented_at: Time.zone.now,
+                  )
+                  controller.user_session[:idv_resolution_stepdown] = {
+                    issuer: service_provider.issuer,
+                    encrypted_pii: SessionEncryptor.new.kms_encrypt(
+                      { first_name: 'Jane' }.to_json,
+                    ),
+                  }
+                end
+
+                it 'redirects to the service provider' do
+                  action
+
+                  expect(response).to redirect_to(/^#{params[:redirect_uri]}/)
+                end
+              end
+
+              context 'without stored stepdown data' do
+                it 'redirects to have the user verify their account' do
+                  action
+
+                  expect(response).to redirect_to(idv_url)
+                end
+              end
+            end
+
             context 'when the service provider forces reproofing' do
               let(:acr_values) { Saml::Idp::Constants::IAL2_BIO_REQUIRED_AUTHN_CONTEXT_CLASSREF }
               let(:idv_level) { :unsupervised_with_selfie }

@@ -78,11 +78,13 @@ module SignUp
     end
 
     def identity_proofing_required?
-      resolved_authn_context_result.identity_proofing?
+      resolved_authn_context_result.identity_proofing? && !request_has_stepped_down?
     end
 
     def idv_requested?
-      resolved_authn_context_result.identity_proofing_or_ialmax? && current_user.identity_verified?
+      (resolved_authn_context_result.identity_proofing_or_ialmax? &&
+        current_user.identity_verified?) ||
+        request_has_stepped_down?
     end
 
     def return_to_next_path
@@ -169,8 +171,24 @@ module SignUp
     end
 
     def pii
+      if request_has_stepped_down?
+        return idv_resolution_stepdown_pii
+      end
+
       Pii::Cacher.new(current_user, user_session).fetch(current_user.active_profile&.id) ||
         Pii::Attributes.new
+    end
+
+    def idv_resolution_stepdown_pii
+      return @idv_resolution_stepdown_pii if defined?(@idv_resolution_stepdown_pii)
+
+      data = user_session[:idv_resolution_stepdown]
+      return if data.blank?
+      return if data[:issuer] != current_sp&.issuer
+      return if data[:encrypted_pii].blank?
+
+      pii_json = SessionEncryptor.new.kms_decrypt(data[:encrypted_pii])
+      Pii::Attributes.new_from_hash(JSON.parse(pii_json, symbolize_names: true))
     end
 
     def send_in_person_completion_survey
@@ -186,6 +204,11 @@ module SignUp
     def redirect_if_user_duplicate_profile
       return unless user_duplicate_profiles_detected?
       redirect_to duplicate_profiles_detected_url(source: :account_verified)
+    end
+
+    def request_has_stepped_down?
+      resolved_authn_context_result.idv_resolution_stepdown_eligible? &&
+        user_session[:idv_resolution_stepdown].present?
     end
   end
 end

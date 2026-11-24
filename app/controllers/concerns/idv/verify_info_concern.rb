@@ -146,7 +146,8 @@ module Idv
 
     def doc_auth_passed_with_valid_vendor?
       idv_session.source_check_vendor.present? &&
-        idv_session.source_check_vendor == Idp::Constants::Vendors::AAMVA
+        idv_session.source_check_vendor != Idp::Constants::Vendors::AAMVA_UNSUPPORTED_JURISDICTION &&
+        idv_session.source_check_vendor != Idp::Constants::Vendors::AAMVA_CHECK_SKIPPED
     end
 
     def handle_identity_resolution_stepdown

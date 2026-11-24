@@ -78,11 +78,41 @@ RSpec.describe OutOfBandSessionAccessor do
       stepdown = store.load_idv_resolution_stepdown_pii(issuer:)
 
       aggregate_failures do
-        expect(stepdown[:pii]).to be_kind_of(Pii::Attributes)
-        expect(stepdown[:pii].first_name).to eq('Jane')
-        expect(stepdown[:pii].ssn).to eq('666661234')
-        expect(stepdown[:identity_resolution]).to eq('failed')
+        expect(stepdown).to be_kind_of(Pii::Attributes)
+        expect(stepdown.first_name).to eq('Jane')
+        expect(stepdown.ssn).to eq('666661234')
       end
+    end
+
+    it 'does not store raw PII in the user session' do
+      writer_instance.put_idv_resolution_stepdown(
+        issuer:,
+        pii: stepdown_pii,
+        expiration: 5.minutes.in_seconds,
+      )
+
+      raw_session = store.send(:session_data).dig('warden.user.user.session', :idv_resolution_stepdown)
+
+      aggregate_failures do
+        expect(raw_session).to have_key(:encrypted_pii)
+        expect(raw_session).not_to have_key(:pii)
+        expect(raw_session.to_s).not_to include('Jane')
+        expect(raw_session.to_s).not_to include('666661234')
+      end
+    end
+
+    it 'does not load malformed stepdown data without encrypted PII' do
+      write_out_of_band_user_session(
+        session_uuid:,
+        user_session: {
+          idv_resolution_stepdown: {
+            issuer:,
+            encrypted_pii: nil,
+          },
+        },
+      )
+
+      expect(store.load_idv_resolution_stepdown_pii(issuer:)).to be_nil
     end
 
     it 'does not load identity resolution stepdown data for another issuer' do
