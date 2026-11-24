@@ -49,7 +49,7 @@ class AuthnContextResolver
   private
 
   def acr_result_with_sp_defaults
-    result_with_stepdown_elegibility(
+    result_with_stepdown_eligibility(
       result_with_sp_aal_defaults(
         result_with_sp_ial_defaults(
           acr_result_without_sp_defaults,
@@ -101,7 +101,7 @@ class AuthnContextResolver
     end
   end
 
-  def result_with_stepdown_elegibility(result)
+  def result_with_stepdown_eligibility(result)
     if service_provider&.idv_resolution_stepdown_allowed? &&
        facial_match_is_required?(result)
       result.with(idv_resolution_stepdown_eligible?: true)
