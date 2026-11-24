@@ -5,8 +5,6 @@ require 'openid_connect_key_validation'
 
 AppArtifacts.setup do |store|
   # When adding or removing certs, make sure to update the 'saml_endpoint_configs' config
-  store.add_artifact(:saml_2025_cert, '/%<env>s/saml2025.crt')
-  store.add_artifact(:saml_2025_key, '/%<env>s/saml2025.key.enc')
   store.add_artifact(:saml_2026_cert, '/%<env>s/saml2026.crt')
   store.add_artifact(:saml_2026_key, '/%<env>s/saml2026.key.enc')
 
