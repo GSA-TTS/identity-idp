@@ -21,8 +21,12 @@ class OpenidConnectUserInfoPresenter
 
     info[:all_emails] = all_emails_from_sp_identity(identity) if scoper.all_emails_requested?
     info[:locale] = web_locale if scoper.locale_requested?
-    info.merge!(ial2_attributes) if identity_proofing_requested_for_verified_user?
-    info.merge!(stepdown_ial2_attributes) if stepdown_ial2_attributes_available?
+
+    if identity_proofing_requested_for_verified_user?
+      info.merge!(ial2_attributes)
+    elsif stepdown_ial2_attributes_available?
+      info.merge!(stepdown_ial2_attributes)
+    end
 
     if scoper.document_images_requested? && document_images_shareable?
       info[:document_images] = document_images

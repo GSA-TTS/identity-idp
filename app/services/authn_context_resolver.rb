@@ -43,7 +43,7 @@ class AuthnContextResolver
   end
 
   def result_is_stepped_down?
-    result.idv_resolution_stepdown_eligible? && !active_profile_initiated_with_sp?
+    result.idv_resolution_stepdown_eligible? && user&.active_profile.blank?
   end
 
   private
@@ -139,9 +139,5 @@ class AuthnContextResolver
 
   def use_semantic_authn_contexts?
     @use_semantic_authn_contexts ||= Component::AcrComponentValues.any_semantic_acrs?(acr_values)
-  end
-
-  def active_profile_initiated_with_sp?
-    user&.active_profile&.initiating_service_provider_issuer == service_provider.issuer
   end
 end
