@@ -252,7 +252,7 @@ RSpec.describe AuthnContextResolver do
 
       context 'when identity resolution stepdown is configured' do
         before do
-          allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
+          allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuers)
             .and_return(allowed_issuers)
         end
 
@@ -701,7 +701,7 @@ RSpec.describe AuthnContextResolver do
 
       context 'when identity resolution stepdown is configured' do
         before do
-          allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
+          allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuers)
             .and_return(allowed_issuers)
         end
 

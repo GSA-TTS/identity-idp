@@ -264,7 +264,7 @@ RSpec.describe OpenidConnect::AuthorizationController do
               let(:user) { create(:user, :fully_registered) }
 
               before do
-                allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
+                allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuers)
                   .and_return([service_provider.issuer])
                 allow(IdentityConfig.store).to receive(:openid_connect_redirect)
                   .and_return('server_side')

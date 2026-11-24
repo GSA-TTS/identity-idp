@@ -114,7 +114,7 @@ class ServiceProvider < ApplicationRecord
   end
 
   def idv_resolution_stepdown_allowed?
-    IdentityConfig.store.idv_resolution_stepdown_allowed_issuer.include?(issuer)
+    IdentityConfig.store.idv_resolution_stepdown_allowed_issuers.include?(issuer)
   end
 
   def logo_url

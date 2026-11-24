@@ -96,6 +96,12 @@ class DocumentImagesForm
       return
     end
 
+    if stepdown_document_images.stepped_down?
+      return if stepdown_document_images.shareable?
+
+      return errors.add(:scope, 'not_consented_to', type: :not_consented_to)
+    end
+
     unless verified_identity?
       errors.add(:acr_values, 'no_identity_verification', type: :no_identity_verification)
 
@@ -170,7 +176,20 @@ class DocumentImagesForm
   end
 
   def artifact
-    @artifact ||= active_profile&.document_artifacts&.retained&.find_by(image_type: image_type)
+    @artifact ||= shareable_document_artifacts.find_by(image_type: image_type)
+  end
+
+  def shareable_document_artifacts
+    return stepdown_document_images.artifacts if active_profile.blank?
+
+    active_profile.document_artifacts.retained
+  end
+
+  def stepdown_document_images
+    @stepdown_document_images ||= Idv::ResolutionStepdownDocumentImages.new(
+      identity:,
+      session_accessor: OutOfBandSessionAccessor.new(identity.rails_session_id),
+    )
   end
 
   def image

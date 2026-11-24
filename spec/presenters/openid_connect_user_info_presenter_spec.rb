@@ -328,7 +328,7 @@ RSpec.describe OpenidConnectUserInfoPresenter do
           )
         end
         before do
-          allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
+          allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuers)
             .and_return([service_provider.issuer])
           if stepdown_pii.present?
             OutOfBandSessionAccessor.new(rails_session_id).put_idv_resolution_stepdown(
@@ -415,6 +415,35 @@ RSpec.describe OpenidConnectUserInfoPresenter do
               expect(user_info).to_not have_key(:social_security_number)
               expect(user_info).to_not have_key(:identity_resolution)
             end
+          end
+        end
+
+        context 'with document images requested' do
+          let(:stepdown_pii) { nil }
+          let(:scope) { 'openid email document_images' }
+          let(:document_capture_session) do
+            create(:document_capture_session, user: identity.user)
+          end
+
+          before do
+            allow(IdentityConfig.store).to receive(:document_images_sharing_enabled)
+              .and_return(true)
+            allow(IdentityConfig.store).to receive(:document_images_sharing_service_providers)
+              .and_return([service_provider.issuer])
+            create(:document_artifact, document_capture_session:, image_type: 'selfie')
+            OutOfBandSessionAccessor.new(rails_session_id).put_idv_resolution_stepdown(
+              issuer: service_provider.issuer,
+              pii: { first_name: 'Jane' },
+              document_capture_session_uuid: document_capture_session.uuid,
+              stepped_down_at: 1.minute.ago,
+            )
+            identity.biometric_sharing_consent_at = Time.zone.now
+          end
+
+          it 'returns a URL for each stored image' do
+            expect(user_info[:document_images]).to eq(
+              selfie: api_openid_connect_document_image_url(image_type: 'selfie'),
+            )
           end
         end
       end

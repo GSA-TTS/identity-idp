@@ -563,6 +563,14 @@ RSpec.describe Idv::DocumentCaptureController do
       )
     end
 
+    it 'resets the resolution stepdown retry for the new document' do
+      subject.idv_session.skip_hybrid_handoff = true
+      subject.idv_session.resolution_stepdown_retry_offered = true
+      put :update
+
+      expect(subject.idv_session.resolution_stepdown_retry_offered).to be_nil
+    end
+
     it 'does not raise an exception when stored_result is nil' do
       allow(subject).to receive(:stored_result).and_return(nil)
       put :update

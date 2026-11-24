@@ -124,7 +124,7 @@ module Idv
             (!failures.has_exception? && failures.resolution_failed?)
 
         idv_failure_log_warning
-        if identity_resolution_stepdown_eligible?
+        if identity_resolution_stepdown_eligible?(failures)
           return handle_identity_resolution_stepdown
         end
         redirect_to warning_url
@@ -137,14 +137,25 @@ module Idv
       end
     end
 
-    def identity_resolution_stepdown_eligible?
-      resolved_authn_context_result.idv_resolution_stepdown_eligible?
+    # This branch is also reached for a ThreatMetrix exception or review, which never steps down.
+    def identity_resolution_stepdown_eligible?(failures)
+      resolved_authn_context_result.idv_resolution_stepdown_eligible? &&
+        !failures.has_exception? &&
+        failures.threatmetrix_stage[:review_status] == 'pass'
     end
 
+    # The first failure for a document still offers a retry on the warning page.
     def handle_identity_resolution_stepdown
+      if !idv_session.resolution_stepdown_retry_offered
+        idv_session.resolution_stepdown_retry_offered = true
+        return redirect_to warning_url
+      end
+
       user_session[:idv_resolution_stepdown] = {
         issuer: current_sp.issuer,
         encrypted_pii: SessionEncryptor.new.kms_encrypt(identity_resolution_stepdown_pii.to_json),
+        document_capture_session_uuid: idv_session.document_capture_session_uuid,
+        stepped_down_at: Time.zone.now.iso8601,
       }
 
       idv_session.clear

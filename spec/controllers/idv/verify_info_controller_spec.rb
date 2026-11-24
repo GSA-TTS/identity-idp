@@ -105,7 +105,7 @@ RSpec.describe Idv::VerifyInfoController do
 
     def stub_idv_resolution_stepdown_request
       allow(controller).to receive(:sp_session).and_return(idv_resolution_stepdown_sp_session)
-      allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
+      allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuers)
         .and_return([idv_resolution_stepdown_sp.issuer])
       controller.idv_session.source_check_vendor = Idp::Constants::Vendors::AAMVA
     end
@@ -1232,6 +1232,7 @@ RSpec.describe Idv::VerifyInfoController do
     context 'when the resolution proofing job fails and there is no exception' do
       let(:document_capture_session) { create(:document_capture_session, user:) }
       let(:applicant_pii) { Idp::Constants::MOCK_IDV_APPLICANT_WITH_SSN }
+      let(:device_review_status) { nil }
       let(:adjudicated_result) do
         Proofing::Resolution::ResultAdjudicator.new(
           phone_result: Proofing::AddressResult.new(
@@ -1240,7 +1241,10 @@ RSpec.describe Idv::VerifyInfoController do
             exception: nil,
             vendor_name: 'test-phone-vendor',
           ).to_h,
-          device_profiling_result: Proofing::DdpResult.new(success: true),
+          device_profiling_result: Proofing::DdpResult.new(
+            success: true,
+            review_status: device_review_status,
+          ),
           hybrid_mobile_device_profiling_result: Proofing::DdpResult.new(success: true),
           ipp_enrollment_in_progress: true,
           residential_resolution_result: Proofing::Resolution::Result.new(success: true),
@@ -1307,7 +1311,47 @@ RSpec.describe Idv::VerifyInfoController do
       end
 
       context 'with an identity resolution stepdown request' do
-        before { stub_idv_resolution_stepdown_request }
+        let(:device_review_status) { 'pass' }
+        let(:retry_offered) { true }
+
+        before do
+          stub_idv_resolution_stepdown_request
+          controller.idv_session.resolution_stepdown_retry_offered = retry_offered
+          controller.idv_session.document_capture_session_uuid = document_capture_session.uuid
+        end
+
+        context 'on the first failure' do
+          let(:retry_offered) { nil }
+
+          it 'offers a retry on the warning page' do
+            get :show
+
+            expect(response).to redirect_to(idv_session_errors_warning_url)
+            expect(controller.user_session[:idv_resolution_stepdown]).to be_nil
+          end
+        end
+
+        context 'when ThreatMetrix asked for review' do
+          let(:device_review_status) { 'review' }
+
+          it 'does not step down' do
+            get :show
+
+            expect(response).to redirect_to(idv_session_errors_warning_url)
+            expect(controller.user_session[:idv_resolution_stepdown]).to be_nil
+          end
+        end
+
+        it 'records the document capture session holding the document images' do
+          freeze_time do
+            get :show
+
+            expect(controller.user_session[:idv_resolution_stepdown]).to include(
+              document_capture_session_uuid: document_capture_session.uuid,
+              stepped_down_at: Time.zone.now.iso8601,
+            )
+          end
+        end
 
         it 'stores encrypted stepdown PII' do
           get :show
@@ -1345,7 +1389,7 @@ RSpec.describe Idv::VerifyInfoController do
 
       context 'when the request is not stepdown eligible' do
         before do
-          allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
+          allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuers)
             .and_return([])
         end
 

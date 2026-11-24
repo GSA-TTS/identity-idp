@@ -49,6 +49,7 @@ module Idv
         idv_session.aamva_verified_attributes = stored_result.aamva_verified_attributes
         idv_session.selfie_check_performed = stored_result.selfie_check_passed?
         idv_session.source_check_vendor = stored_result.source_check_vendor
+        idv_session.resolution_stepdown_retry_offered = nil
       end
 
       track_document_issuing_state(user, stored_result.pii_from_doc[:state])

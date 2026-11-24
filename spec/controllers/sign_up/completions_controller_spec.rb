@@ -141,7 +141,7 @@ RSpec.describe SignUp::CompletionsController do
 
           context 'with stored identity resolution stepdown data' do
             before do
-              allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
+              allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuers)
                 .and_return([current_sp.issuer])
               subject.session[:sp][:acr_values] =
                 Saml::Idp::Constants::IAL_VERIFIED_FACIAL_MATCH_REQUIRED_ACR
@@ -169,7 +169,7 @@ RSpec.describe SignUp::CompletionsController do
 
           context 'with stored identity resolution stepdown data for another issuer' do
             before do
-              allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
+              allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuers)
                 .and_return([current_sp.issuer])
               subject.session[:sp][:acr_values] =
                 Saml::Idp::Constants::IAL_VERIFIED_FACIAL_MATCH_REQUIRED_ACR
@@ -193,7 +193,7 @@ RSpec.describe SignUp::CompletionsController do
 
           context 'with malformed identity resolution stepdown data' do
             before do
-              allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
+              allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuers)
                 .and_return([current_sp.issuer])
               subject.session[:sp][:acr_values] =
                 Saml::Idp::Constants::IAL2_BIO_REQUIRED_AUTHN_CONTEXT_CLASSREF

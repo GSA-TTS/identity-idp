@@ -171,6 +171,50 @@ RSpec.describe DocumentImagesForm do
       end
     end
 
+    context 'when the user stepped down from identity resolution' do
+      let(:acr_values) { Saml::Idp::Constants::IAL_VERIFIED_FACIAL_MATCH_REQUIRED_ACR }
+      let(:document_capture_session) { create(:document_capture_session, user:) }
+      let(:consent_at) { Time.zone.now }
+      let!(:artifact) do
+        create(
+          :document_artifact,
+          document_capture_session:,
+          image_type: artifact_image_type,
+          storage_name:,
+          encryption_key:,
+        )
+      end
+
+      before do
+        allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuers)
+          .and_return([identity.service_provider])
+        identity.update!(biometric_sharing_consent_at: consent_at)
+        OutOfBandSessionAccessor.new(identity.rails_session_id).put_idv_resolution_stepdown(
+          issuer: identity.service_provider,
+          pii: { first_name: 'Jane' },
+          document_capture_session_uuid: document_capture_session.uuid,
+          stepped_down_at: 1.minute.ago,
+        )
+      end
+
+      it 'returns the image from the stepdown document capture session' do
+        expect(response).to be_success
+        expect(response.extra).to include(image:, artifact:)
+      end
+
+      context 'without consent since the stepdown' do
+        let(:consent_at) { 2.minutes.ago }
+
+        it 'reports the missing consent' do
+          expect(response).to_not be_success
+          expect(form.errors.details[:scope]).to include(
+            error: 'not_consented_to',
+            type: :not_consented_to,
+          )
+        end
+      end
+    end
+
     context 'when there is no artifact for the requested type' do
       let(:image_type) { 'back' }
       let(:artifact_image_type) { 'front' }

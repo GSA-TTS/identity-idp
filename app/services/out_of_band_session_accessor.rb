@@ -39,12 +39,16 @@ class OutOfBandSessionAccessor
     Pii::Cacher.new(nil, session).fetch(profile_id) if session
   end
 
+  # @return [Hash, nil] the identity resolution stepdown stored for `issuer`
+  def load_idv_resolution_stepdown(issuer:)
+    data = session_data.dig('warden.user.user.session', :idv_resolution_stepdown)
+    data if data.present? && data[:issuer] == issuer
+  end
+
   # @return [Pii::Attributes, nil]
   def load_idv_resolution_stepdown_pii(issuer:)
-    data = session_data.dig('warden.user.user.session', :idv_resolution_stepdown)
-
-    return if data.blank?
-    return if data[:issuer] != issuer
+    data = load_idv_resolution_stepdown(issuer:)
+    return if data.blank? || data[:encrypted_pii].blank?
 
     pii_json = SessionEncryptor.new.kms_decrypt(data[:encrypted_pii])
 
@@ -98,11 +102,21 @@ class OutOfBandSessionAccessor
   # Only used for convenience in tests
   # @param [Pii::Attributes] pii
   # @param [#to_s] issuer string
-  def put_idv_resolution_stepdown(issuer:, pii:, expiration: 5.minutes)
+  # @param [String, nil] document_capture_session_uuid
+  # @param [Time, nil] stepped_down_at
+  def put_idv_resolution_stepdown(
+    issuer:,
+    pii:,
+    document_capture_session_uuid: nil,
+    stepped_down_at: nil,
+    expiration: 5.minutes
+  )
     data = {
       idv_resolution_stepdown: {
         issuer:,
         encrypted_pii: SessionEncryptor.new.kms_encrypt(pii.to_h.to_json),
+        document_capture_session_uuid:,
+        stepped_down_at: stepped_down_at&.iso8601,
       },
     }
 

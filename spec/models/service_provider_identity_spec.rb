@@ -395,4 +395,20 @@ RSpec.describe ServiceProviderIdentity do
       end
     end
   end
+
+  describe '#biometric_sharing_consented_since?' do
+    let(:identity) { build(:service_provider_identity, biometric_sharing_consent_at: 1.hour.ago) }
+
+    it 'is true when consent was given after the time' do
+      expect(identity.biometric_sharing_consented_since?(2.hours.ago)).to eq(true)
+    end
+
+    it 'is false when consent was given before the time' do
+      expect(identity.biometric_sharing_consented_since?(30.minutes.ago)).to eq(false)
+    end
+
+    it 'is false when the time is unknown' do
+      expect(identity.biometric_sharing_consented_since?(nil)).to eq(false)
+    end
+  end
 end

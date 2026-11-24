@@ -84,7 +84,7 @@ RSpec.describe ServiceProvider do
   describe '#idv_resolution_stepdown_allowed?' do
     context 'when the issuer is allowlisted' do
       before do
-        allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
+        allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuers)
           .and_return([service_provider.issuer])
       end
 
@@ -95,7 +95,7 @@ RSpec.describe ServiceProvider do
 
     context 'when the issuer is not allowlisted' do
       before do
-        allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
+        allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuers)
           .and_return([])
       end
 

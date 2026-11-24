@@ -42,6 +42,7 @@ module Idv
   # @attr proofing_started_at [String, nil]
   # @attr redo_document_capture [Boolean, nil]
   # @attr residential_resolution_vendor [String, nil]
+  # @attr resolution_stepdown_retry_offered [Boolean, nil]
   # @attr resolution_successful [Boolean, nil]
   # @attr resolution_vendor [String,nil]
   # @attr selfie_check_performed [Boolean, nil]
@@ -110,6 +111,7 @@ module Idv
       proofing_started_at
       redo_document_capture
       residential_resolution_vendor
+      resolution_stepdown_retry_offered
       resolution_successful
       resolution_vendor
       selfie_check_performed

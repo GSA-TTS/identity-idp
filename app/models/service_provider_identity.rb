@@ -90,12 +90,15 @@ class ServiceProviderIdentity < ApplicationRecord
   # (so re-proofing forces fresh, purpose-specific re-consent). Fails closed if
   # the profile's verification time is unknown.
   def biometric_sharing_consented?(active_profile = nil)
+    biometric_sharing_consented_since?(active_profile&.verified_at)
+  end
+
+  # @param time [Time, nil] the consent must be at least this recent; fails closed when nil
+  def biometric_sharing_consented_since?(time)
     return false if biometric_sharing_consent_at.blank? || deleted_at.present?
     return false if biometric_sharing_consent_at < CONSENT_EXPIRATION.ago
+    return false if time.blank?
 
-    verified_at = active_profile&.verified_at
-    return false if verified_at.blank?
-
-    biometric_sharing_consent_at >= verified_at
+    biometric_sharing_consent_at >= time
   end
 end

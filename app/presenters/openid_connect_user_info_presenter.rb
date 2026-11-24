@@ -88,13 +88,7 @@ class OpenidConnectUserInfoPresenter
   end
 
   def stepdown_ial2_attributes
-    issuer = identity&.service_provider_record&.issuer
-    return Pii::Attributes.new_from_hash({}) unless issuer
-
-    @ial2_data = out_of_band_session_accessor.load_idv_resolution_stepdown_pii(issuer:) ||
-                 Pii::Attributes.new_from_hash({})
-
-    ial2_attributes.merge({ identity_resolution: 'failed' }).compact
+    ial2_attributes.merge(identity_resolution: 'failed').compact
   end
 
   def x509_attributes
@@ -114,7 +108,7 @@ class OpenidConnectUserInfoPresenter
 
     @document_images =
       if document_images_shareable?
-        active_profile.document_artifacts.retained.order(:image_type)
+        shareable_document_artifacts.order(:image_type)
           .each_with_object({}) do |a, hash|
           hash[a.image_type.to_sym] = api_openid_connect_document_image_url(
             image_type: a.image_type,
@@ -126,6 +120,23 @@ class OpenidConnectUserInfoPresenter
   end
 
   def document_images_shareable?
+    profile_document_images_shareable? || stepdown_document_images.shareable?
+  end
+
+  def shareable_document_artifacts
+    return stepdown_document_images.artifacts unless profile_document_images_shareable?
+
+    active_profile.document_artifacts.retained
+  end
+
+  def stepdown_document_images
+    @stepdown_document_images ||= Idv::ResolutionStepdownDocumentImages.new(
+      identity:,
+      session_accessor: out_of_band_session_accessor,
+    )
+  end
+
+  def profile_document_images_shareable?
     active_profile.present? &&
       resolved_authn_context_result.identity_proofing? &&
       identity.service_provider_record&.document_images_sharing_allowed? &&
@@ -133,7 +144,7 @@ class OpenidConnectUserInfoPresenter
   end
 
   def document_metadata
-    return {} unless document_images_shareable?
+    return stepdown_document_images.document_metadata unless profile_document_images_shareable?
 
     metadata = active_profile.document_metadata
     metadata&.retained? ? metadata.document_data : {}
@@ -182,8 +193,12 @@ class OpenidConnectUserInfoPresenter
   end
 
   def ial2_data
-    @ial2_data ||= out_of_band_session_accessor.load_pii(active_profile.id) ||
-                   Pii::Attributes.new_from_hash({})
+    @ial2_data ||= if stepdown_ial2_attributes_available?
+                     stepdown_pii
+                   else
+                     out_of_band_session_accessor.load_pii(active_profile.id) ||
+                       Pii::Attributes.new_from_hash({})
+                   end
   end
 
   def identity_proofing_requested_for_verified_user?
@@ -192,7 +207,17 @@ class OpenidConnectUserInfoPresenter
   end
 
   def stepdown_ial2_attributes_available?
-    resolved_authn_context_result.idv_resolution_stepdown_eligible? && active_profile.blank?
+    resolved_authn_context_result.idv_resolution_stepdown_eligible? &&
+      active_profile.blank? &&
+      stepdown_pii.present?
+  end
+
+  def stepdown_pii
+    return @stepdown_pii if defined?(@stepdown_pii)
+
+    @stepdown_pii = out_of_band_session_accessor.load_idv_resolution_stepdown_pii(
+      issuer: identity.service_provider,
+    )
   end
 
   def resolved_authn_context_result

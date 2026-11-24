@@ -104,7 +104,7 @@ RSpec.describe IdTokenBuilder do
           identity.service_provider = service_provider.issuer
           identity.service_provider_record = service_provider
           identity.acr_values = Saml::Idp::Constants::IAL_VERIFIED_FACIAL_MATCH_REQUIRED_ACR
-          allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
+          allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuers)
             .and_return([service_provider.issuer])
           allow_any_instance_of(OutOfBandSessionAccessor)
             .to receive(:load_idv_resolution_stepdown_pii)
