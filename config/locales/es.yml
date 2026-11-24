@@ -1606,7 +1606,7 @@ instructions.password.strength.4: Muy buena
 instructions.password.strength.intro: 'Seguridad de la contraseña:'
 instructions.password.strength.strong: Fuerte
 instructions.password.strength.too_common: Demasiado común
-instructions.sp_handoff_bounced: Logró iniciar sesión, pero %{sp_name} lo envió de nuevo a %{app_name}. Contacte con %{sp_link} para obtener ayuda.
+instructions.sp_handoff_bounced_html: Logró iniciar sesión, pero %{sp_name} lo envió de nuevo a %{app_name}. Contacte con %{sp_link_html} para obtener ayuda.
 instructions.sp_handoff_bounced_with_no_sp: su proveedor de servicios
 links.accessibility_and_languages: Accesibilidad e idiomas
 links.account.reactivate.with_key: Tengo mi clave
@@ -1676,6 +1676,21 @@ nds.choose_id_type.verify_in_person: Verificar en persona
 nds.completions.heading_idv: Identidad verificada
 nds.completions.intro_html: Al seleccionar Continuar, acepta compartir la siguiente información con %{sp_html} e ir a su sitio.
 nds.completions.nist_alt: 'Sello del NIST: Cifrado. Protegido. Comprobado. Instituto Nacional de Estándares y Tecnología'
+nds.dashboard_account.change: Cambiar
+nds.dashboard_account.delete_account_info: Se borrarán todos los datos, la configuración y la actividad asociados.
+nds.dashboard_account.delete_email_heading: ¿Eliminar %{email}?
+nds.dashboard_account.delete_email_info: Una vez que elimine esta dirección de correo electrónico, no podrá usarla para iniciar sesión en %{app_name} ni en ninguna de las aplicaciones gubernamentales vinculadas a su cuenta, y dejará de recibir notificaciones de la cuenta en esta dirección.
+nds.dashboard_account.edit_password_heading: Introduzca una nueva contraseña
+nds.dashboard_account.identity_not_verified: Cuenta no verificada
+nds.dashboard_account.identity_verified: Cuenta verificada
+nds.dashboard_account.learn_more: Más información
+nds.dashboard_account.manage_phone_heading: Administrar la configuración del teléfono
+nds.dashboard_account.manage_phone_info_html: Elija cómo recibir su código para <strong>%{phone}</strong>. Si usa un teléfono fijo, seleccione “Llamada telefónica”.
+nds.dashboard_account.one_phone_default_info: Debe tener más de un número de teléfono para seleccionar otro número predeterminado.
+nds.dashboard_account.primary: Principal
+nds.dashboard_account.remove_phone: Eliminar número de teléfono
+nds.dashboard_account.unconfirmed: Sin confirmar
+nds.dashboard_account.verify: Verificar
 nds.document_capture.mdl_alert_body: Se añadirán otras billeteras digitales a finales de este año.
 nds.document_capture.mdl_alert_title: Actualmente disponible con Google Wallet y Samsung Wallet.
 nds.document_capture.mdl_heading: Añada la información de su licencia de conducir móvil
@@ -1711,6 +1726,8 @@ nds.footer.experience_notice_html: You’re part of a group experiencing %{link_
 nds.footer.experience_notice_label: Interface preference
 nds.footer.experience_notice_link: our refreshed interface
 nds.footer.switch_to_legacy: Switch to legacy
+nds.forgot_password.body_html: Le enviamos un vínculo a <strong>%{email}</strong> con instrucciones para restablecer su contraseña. Si no recibe un correo electrónico en breve, revise su carpeta de correo no deseado.
+nds.forgot_password.resend: Volver a enviar el vínculo
 nds.hybrid_handoff.heading: Ingrese su número de teléfono
 nds.hybrid_handoff.subtitle: Le enviaremos un enlace para verificar su identificación con un proveedor de servicios de confianza.
 nds.idv_phone.info: Ingrese un número de teléfono de EE. UU. Le enviaremos un mensaje de texto o lo llamaremos con un código de 6 dígitos. Solo líneas telefónicas estándar; no se admiten números VoIP ni premium. Pueden aplicarse tarifas de mensajes y datos.
@@ -1770,6 +1787,12 @@ nds.piv_cac_setup.step_3: Agregue su tarjeta PIV o CAC
 nds.piv_cac_setup.step_3_info: Se le pedirá que elija un certificado e ingrese su PIN después de hacer clic en el botón de continuar.
 nds.request_letter.heading: Verifique por correo postal
 nds.request_letter.info: Para verificar su identidad, le enviaremos por correo una carta con un código de verificación e instrucciones a su dirección. Debería llegar en 5 a 10 días. Siga las instrucciones de la carta para terminar de verificar su identidad.
+nds.reset_password.email_heading: Ingrese su correo electrónico
+nds.reset_password.heading: Ingrese una nueva contraseña
+nds.reset_password.invalid_token_heading: El token para restablecer la contraseña no es válido.
+nds.reset_password.personal_key_info: Si verificó su identidad, necesitará su clave personal de 16 caracteres para restablecer su contraseña. Sin ella, puede restablecer su contraseña de todos modos, pero después tendrá que volver a verificar su identidad.
+nds.reset_password.request_new_link: Ingrese su correo electrónico para recibir un nuevo vínculo.
+nds.reset_password.token_expired_heading: Su vínculo para restablecer la contraseña venció.
 nds.second_mfa_reminder.skip: Omitir
 nds.socure_errors.in_person_heading: O, intente verificar su identidad en persona
 nds.socure_errors.rate_limit_html.one: Puede intentarlo <strong>una vez más.</strong> Luego, debe esperar 6 horas antes de volver a intentarlo.

@@ -81,6 +81,7 @@ module Test
       { issuer: 'urn:gov:gsa:openidconnect:test:nds-explorer-sp-a', name: 'NDS Dev App A' },
       { issuer: 'urn:gov:gsa:openidconnect:test:nds-explorer-sp-b', name: 'NDS Dev App B' },
     ].freeze
+    INITIATING_IDV_SP_ISSUER = 'urn:gov:gsa:openidconnect:test:nds-explorer-idv-sp'
 
     # Maps a parameterized template to the record-kind key in record_specs. The
     # route segment is always ":id" (ambiguous), so the index tags each select
@@ -128,6 +129,21 @@ module Test
     # i18n-tasks-use t('nds.completions.heading_idv')
     # i18n-tasks-use t('nds.completions.intro_html')
     # i18n-tasks-use t('nds.completions.nist_alt')
+    # i18n-tasks-use t('nds.dashboard_account.change')
+    # i18n-tasks-use t('nds.dashboard_account.delete_account_info')
+    # i18n-tasks-use t('nds.dashboard_account.delete_email_heading')
+    # i18n-tasks-use t('nds.dashboard_account.delete_email_info')
+    # i18n-tasks-use t('nds.dashboard_account.edit_password_heading')
+    # i18n-tasks-use t('nds.dashboard_account.identity_not_verified')
+    # i18n-tasks-use t('nds.dashboard_account.identity_verified')
+    # i18n-tasks-use t('nds.dashboard_account.learn_more')
+    # i18n-tasks-use t('nds.dashboard_account.manage_phone_heading')
+    # i18n-tasks-use t('nds.dashboard_account.manage_phone_info_html')
+    # i18n-tasks-use t('nds.dashboard_account.one_phone_default_info')
+    # i18n-tasks-use t('nds.dashboard_account.primary')
+    # i18n-tasks-use t('nds.dashboard_account.remove_phone')
+    # i18n-tasks-use t('nds.dashboard_account.unconfirmed')
+    # i18n-tasks-use t('nds.dashboard_account.verify')
     # i18n-tasks-use t('nds.duplicate_profiles_detected.cant_access')
     # i18n-tasks-use t('nds.duplicate_profiles_detected.connected_agencies')
     # i18n-tasks-use t('nds.duplicate_profiles_detected.created_at_html')
@@ -710,6 +726,14 @@ module Test
       user.identities.where(service_provider: issuers).destroy_all
     end
 
+    def initiating_idv_service_provider
+      ServiceProvider.find_by(issuer: INITIATING_IDV_SP_ISSUER) ||
+        ServiceProvider.create!(
+          issuer: INITIATING_IDV_SP_ISSUER, friendly_name: 'Department of State',
+          post_idv_follow_up_url: root_url, agency: dev_agency
+        )
+    end
+
     def connected_service_provider(sp)
       ServiceProvider.find_by(issuer: sp[:issuer]) ||
         ServiceProvider.create!(
@@ -822,7 +846,7 @@ module Test
       if params[:logo].present?
         @current_sp = ServiceProviderStub.new(
           logo: 'logo.svg',
-          logo_url: image_path('logo.svg'),
+          logo_url: helpers.image_path('logo.svg'),
           issuer: 'urn:gov:gsa:test',
         )
       end
@@ -856,6 +880,53 @@ module Test
           )
         end
       end
+      {}
+    end
+
+    def setup_password_reset_email
+      @password_reset_email_form = PasswordResetEmailForm.new('')
+      if params[:error] == 'email'
+        @password_reset_email_form.errors.add(:email, t('valid_email.validations.email.invalid'))
+      end
+      if %w[invalid_token token_expired].include?(params[:error])
+        flash.now[:error] = t("devise.passwords.#{params[:error]}")
+      end
+      if params[:sp_alert].present?
+        @decorated_sp_session = SpSessionStub.new(
+          sp_name: 'Example Service Provider',
+          sp_alert_text: 'Example service provider alert.',
+          cancel_link_url: root_url,
+        )
+      end
+      {}
+    end
+
+    def setup_password_reset_sent
+      @email = 'user@example.com'
+      @password_reset_email_form = PasswordResetEmailForm.new(@email)
+      @resend = params[:resend].presence
+      {}
+    end
+
+    def setup_password_reset_new_password
+      @reset_password_form = ResetPasswordForm.new(user: User.new)
+      case params[:error]
+      when 'too_short'
+        @reset_password_form.errors.add(:password, :too_short, count: Devise.password_length.min)
+      when 'weak'
+        @reset_password_form.errors.add(
+          :password, :weak_password,
+          feedback: t('zxcvbn.feedback.this_is_a_top_10_common_password')
+        )
+      when 'pwned'
+        @reset_password_form.errors.add(:password, :pwned_password)
+      when 'mismatch'
+        @reset_password_form.errors.add(
+          :password_confirmation,
+          t('errors.messages.password_mismatch'),
+        )
+      end
+      @forbidden_passwords = []
       {}
     end
 
@@ -1582,7 +1653,13 @@ module Test
     def apply_dashboard_identity(user)
       case params[:identity]
       when 'verified', 'password_reset'
-        profile = build_verified_profile(user, idv_level: :legacy_unsupervised)
+        # connect=1: verified for an agency the user hasn't signed in to since, so the Account
+        # tab prompts them to connect.
+        profile = build_verified_profile(
+          user,
+          idv_level: :legacy_unsupervised,
+          initiating_service_provider: (initiating_idv_service_provider if params[:connect]),
+        )
         PersonalKeyGenerator.new(user).generate!
         profile.deactivate(:password_reset) if params[:identity] == 'password_reset'
       when 'facial_match'
@@ -1656,7 +1733,7 @@ module Test
                           Idp::Constants::MOCK_IDV_APPLICANT_WITH_PHONE,
                         )
                       end
-      @presenter = dashboard_presenter(user, decrypted_pii:)
+      @presenter = dashboard_account_presenter(user, decrypted_pii:)
       if params[:flash] == 'email_confirmed'
         flash.now[:success] = t(
           'account.emails.confirmed_html',
@@ -1664,6 +1741,24 @@ module Test
         )
       end
       {}
+    end
+
+    # The Account tab's identity verification panel also depends on what the agency in session
+    # requires (identity verification, facial match) and on whether the verified information is
+    # hidden until the user authenticates again.
+    def dashboard_account_presenter(user, decrypted_pii:)
+      facial_match = params[:facial_match_required].present?
+      AccountShowPresenter.new(
+        decrypted_pii:,
+        sp_session_request_url: (root_url if params[:sp].present?),
+        authn_context: Component::Parser::Result.no_sp_result.with(
+          identity_proofing?: params[:idv_required].present? || facial_match,
+          facial_match?: facial_match,
+        ),
+        sp_name: ('Veterans Affairs' if params[:sp].present? || facial_match),
+        user:,
+        locked_for_session: params[:locked].present?,
+      )
     end
 
     def setup_dashboard_add_email
@@ -1795,6 +1890,15 @@ module Test
 
     def setup_dashboard_forget_all_browsers
       @nds_current_user = build_dashboard_user
+      {}
+    end
+
+    def setup_sts_consent
+      user = User.new
+      @nds_current_user = user
+      @sts_consent_form = StsConsentForm.new(
+        user:, target_app: 'urn:gov:gsa:test:nds-explorer-sts', actor_app: DEV_SP_ISSUER,
+      )
       {}
     end
 

@@ -101,6 +101,18 @@ class Profile < ApplicationRecord
     PROOFING_AGENT_IDV_LEVELS[idv_level] == 'enhanced'
   end
 
+  def basic?
+    PROOFING_AGENT_IDV_LEVELS[idv_level] == 'basic'
+  end
+
+  def basic_w_no_gpo?
+    basic? && !(gpo_verification_pending? || verify_by_mail?)
+  end
+
+  def verify_by_mail?
+    proofing_components&.dig('address_check') == 'gpo_letter'
+  end
+
   def fraud_review_pending?
     fraud_review_pending_at.present?
   end
