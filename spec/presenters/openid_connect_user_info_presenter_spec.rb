@@ -299,6 +299,105 @@ RSpec.describe OpenidConnectUserInfoPresenter do
           end
         end
       end
+
+      context 'identity resolution stepdown' do
+        let(:pii) { nil }
+        let(:profile) { nil }
+        let(:requested_aal_value) { Saml::Idp::Constants::AAL2_AUTHN_CONTEXT_CLASSREF }
+        let(:scope) do
+          'openid email address phone profile social_security_number'
+        end
+        let(:acr_values) do
+          [
+            Saml::Idp::Constants::AAL2_AUTHN_CONTEXT_CLASSREF,
+            Saml::Idp::Constants::IAL_VERIFIED_FACIAL_MATCH_REQUIRED_ACR,
+          ].join(' ')
+        end
+        let(:stepdown_pii) do
+          Pii::Attributes.new_from_hash(
+            first_name: 'Jane',
+            last_name: 'Doe',
+            dob: '1970-01-01',
+            ssn: '666661234',
+            phone: '(202) 555-0100',
+            address1: '123 Main St',
+            address2: 'Apt 4',
+            city: 'Washington',
+            state: 'DC',
+            zipcode: '20001-1234',
+          )
+        end
+        before do
+          allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
+            .and_return([service_provider.issuer])
+          OutOfBandSessionAccessor.new(rails_session_id).put_idv_resolution_stepdown(
+            issuer: service_provider.issuer,
+            pii: stepdown_pii,
+            expiration: 5.minutes.in_seconds,
+          )
+        end
+
+        it 'returns requested attributes from the stepdown payload' do
+          aggregate_failures do
+            expect(user_info[:given_name]).to eq('Jane')
+            expect(user_info[:family_name]).to eq('Doe')
+            expect(user_info[:birthdate]).to eq('1970-01-01')
+            expect(user_info[:phone]).to eq('+12025550100')
+            expect(user_info[:phone_verified]).to eq(true)
+            expect(user_info[:address]).to eq(
+              formatted: "123 Main St\nApt 4\nWashington, DC 20001",
+              street_address: "123 Main St\nApt 4",
+              locality: 'Washington',
+              region: 'DC',
+              postal_code: '20001',
+            )
+            expect(user_info[:social_security_number]).to eq('666661234')
+          end
+        end
+
+        it 'returns the verification status' do
+          expect(user_info[:identity_resolution]).to eq('failed')
+        end
+
+        it 'asserts non-IAL2 assurance' do
+          aggregate_failures do
+            expect(user_info[:ial]).to eq(Saml::Idp::Constants::IAL_AUTH_ONLY_ACR)
+            expect(user_info[:aal]).to eq(Saml::Idp::Constants::AAL2_AUTHN_CONTEXT_CLASSREF)
+            expect(user_info[:verified_at]).to be(nil)
+          end
+        end
+
+        context 'without profile scope' do
+          let(:scope) { 'openid email social_security_number' }
+
+          it 'filters out unrequested stepdown attributes' do
+            aggregate_failures do
+              expect(user_info[:social_security_number]).to eq('666661234')
+              expect(user_info).to_not have_key(:given_name)
+              expect(user_info).to_not have_key(:family_name)
+              expect(user_info).to_not have_key(:birthdate)
+              expect(user_info).to_not have_key(:address)
+              expect(user_info).to_not have_key(:phone)
+            end
+          end
+        end
+
+        context 'without stored stepdown data' do
+          let(:stepdown_pii) { nil }
+
+          it 'does not return proofing attributes' do
+            aggregate_failures do
+              expect(user_info).to_not have_key(:given_name)
+              expect(user_info).to_not have_key(:family_name)
+              expect(user_info).to_not have_key(:birthdate)
+              expect(user_info).to_not have_key(:address)
+              expect(user_info).to_not have_key(:phone)
+              expect(user_info).to_not have_key(:social_security_number)
+              expect(user_info).to_not have_key(:verification_status)
+            end
+          end
+        end
+      end
     end
 
     context 'when minimal scopes are requested for proofed attributes' do

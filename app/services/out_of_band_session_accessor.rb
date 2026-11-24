@@ -48,10 +48,7 @@ class OutOfBandSessionAccessor
 
     pii_json = SessionEncryptor.new.kms_decrypt(data[:encrypted_pii])
 
-    {
-      pii: Pii::Attributes.new_from_hash(JSON.parse(pii_json, symbolize_names: true)),
-      identity_resolution: 'failed',
-    }
+    Pii::Attributes.new_from_hash(JSON.parse(pii_json, symbolize_names: true))
   end
 
   # @return [String, nil]

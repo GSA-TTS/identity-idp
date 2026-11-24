@@ -76,7 +76,6 @@ RSpec.describe OutOfBandSessionAccessor do
       )
 
       stepdown = store.load_idv_resolution_stepdown_pii(issuer:)
-      binding.pry
 
       aggregate_failures do
         expect(stepdown[:pii]).to be_kind_of(Pii::Attributes)
