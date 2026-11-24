@@ -16,6 +16,7 @@ class AuthnContextResolver
   end
 
   def asserted_ial_acr
+    return resolve_acr(Saml::Idp::Constants::IAL1_AUTHN_CONTEXT_CLASSREF) if result_is_stepped_down?
     return resolve_acr(Saml::Idp::Constants::IAL1_AUTHN_CONTEXT_CLASSREF) unless
       user&.identity_verified?
 
@@ -44,9 +45,11 @@ class AuthnContextResolver
   private
 
   def acr_result_with_sp_defaults
-    result_with_sp_aal_defaults(
-      result_with_sp_ial_defaults(
-        acr_result_without_sp_defaults,
+    result_with_stepdown_elegibility(
+      result_with_sp_aal_defaults(
+        result_with_sp_ial_defaults(
+          acr_result_without_sp_defaults,
+        ),
       ),
     )
   end
@@ -94,6 +97,15 @@ class AuthnContextResolver
     end
   end
 
+  def result_with_stepdown_elegibility(result)
+    if service_provider&.idv_resolution_stepdown_allowed? &&
+       facial_match_is_required?(result)
+      result.with(idv_resolution_stepdown_eligible?: true)
+    else
+      result
+    end
+  end
+
   def user_has_account_with_sp?
     return false unless user && service_provider
     user.connected_apps.exists?(service_provider: service_provider.issuer)
@@ -123,5 +135,13 @@ class AuthnContextResolver
 
   def use_semantic_authn_contexts?
     @use_semantic_authn_contexts ||= Component::AcrComponentValues.any_semantic_acrs?(acr_values)
+  end
+
+  def result_is_stepped_down?
+    result.idv_resolution_stepdown_eligible? && !active_profile_initiated_with_sp?
+  end
+
+  def active_profile_initiated_with_sp?
+    user&.active_profile&.initiating_service_provider_issuer == service_provider.issuer
   end
 end
