@@ -107,12 +107,9 @@ RSpec.describe IdTokenBuilder do
           allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
             .and_return([service_provider.issuer])
           allow_any_instance_of(OutOfBandSessionAccessor)
-            .to receive(:load_idv_resolution_stepdown)
+            .to receive(:load_idv_resolution_stepdown_pii)
             .with(issuer: service_provider.issuer)
-            .and_return(
-              pii: Pii::Attributes.new_from_hash(first_name: 'Jane'),
-              identity_resolution: 'failed',
-            )
+            .and_return(Pii::Attributes.new_from_hash(first_name: 'Jane'))
         end
 
         it 'sets the acr to IAL1' do
@@ -121,6 +118,19 @@ RSpec.describe IdTokenBuilder do
 
         it 'includes the verification status' do
           expect(decoded_payload[:identity_resolution]).to eq('failed')
+        end
+
+        context 'without stored stepdown data' do
+          before do
+            allow_any_instance_of(OutOfBandSessionAccessor)
+              .to receive(:load_idv_resolution_stepdown_pii)
+              .with(issuer: service_provider.issuer)
+              .and_return(nil)
+          end
+
+          it 'does not include the verification status' do
+            expect(decoded_payload).not_to have_key(:identity_resolution)
+          end
         end
       end
 

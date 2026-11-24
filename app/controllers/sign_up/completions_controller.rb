@@ -181,6 +181,18 @@ module SignUp
         Pii::Attributes.new
     end
 
+    def idv_resolution_stepdown_pii
+      return @idv_resolution_stepdown_pii if defined?(@idv_resolution_stepdown_pii)
+
+      data = user_session[:idv_resolution_stepdown]
+      return if data.blank?
+      return if data[:issuer] != current_sp&.issuer
+      return if data[:encrypted_pii].blank?
+
+      pii_json = SessionEncryptor.new.kms_decrypt(data[:encrypted_pii])
+      Pii::Attributes.new_from_hash(JSON.parse(pii_json, symbolize_names: true))
+    end
+
     def send_in_person_completion_survey
       return unless IdentityConfig.store.in_person_completion_survey_delivery_enabled
       return unless resolved_authn_context_result.identity_proofing?
@@ -194,6 +206,11 @@ module SignUp
     def redirect_if_user_duplicate_profile
       return unless user_duplicate_profiles_detected?
       redirect_to duplicate_profiles_detected_url(source: :account_verified)
+    end
+
+    def request_has_stepped_down?
+      resolved_authn_context_result.idv_resolution_stepdown_eligible? &&
+        user_session[:idv_resolution_stepdown].present?
     end
   end
 end
