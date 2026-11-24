@@ -98,5 +98,4 @@ describe('state-guidance', () => {
       expect(nonDefaultText.length + defaultText.length).to.eq(allHintTexts.length);
     });
   });
-
 });
