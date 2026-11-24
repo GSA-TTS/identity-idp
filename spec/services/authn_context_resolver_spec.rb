@@ -298,6 +298,7 @@ RSpec.describe AuthnContextResolver do
                 before do
                   create(:profile, :active, user:, initiating_service_provider: sp2)
                 end
+
                 it 'keeps the normal IAL2 request requirements' do
                   expect(result.identity_proofing?).to be true
                   expect(result.aal2?).to be true
