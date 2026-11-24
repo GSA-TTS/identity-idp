@@ -184,12 +184,18 @@ RSpec.describe VerifySpAttributesConcern do
     let(:sp_session) { {} }
     let(:user) { build(:user) }
     let(:verified_attributes) { nil }
+    let(:idv_resolution_stepdown_eligible) { false }
 
     subject(:needs_completion_screen_reason) { controller.needs_completion_screen_reason }
 
     before do
       allow(controller).to receive(:sp_session).and_return(sp_session)
       allow(controller).to receive(:current_user).and_return(user)
+      allow(controller).to receive(:resolved_authn_context_result)
+        .and_return(double(
+          ialmax?: false, identity_proofing?: false,
+          idv_resolution_stepdown_eligible?: idv_resolution_stepdown_eligible
+        ))
     end
 
     context 'with an issuer' do
@@ -233,6 +239,37 @@ RSpec.describe VerifySpAttributesConcern do
 
           it 'is nil' do
             expect(needs_completion_screen_reason).to be_nil
+          end
+
+          context 'when the request is step down eligible' do
+            let(:user_session) { {} }
+            before do
+              allow(controller).to receive(:user_session).and_return(user_session)
+            end
+            let(:idv_resolution_stepdown_eligible) { true }
+            let(:requested_attributes) { ['first_name', 'verified_at'] }
+            let(:verified_attributes) { ['first_name', 'verified_at'] }
+
+            context 'when user has not stepped down' do
+              it 'is nil' do
+                expect(needs_completion_screen_reason).to be_nil
+              end
+            end
+
+            context 'when user has stepped down' do
+              let(:user_session) do
+                {
+                  idv_resolution_stepdown: {
+                    issuer: issuer,
+                    encrypted_pii: SessionEncryptor.new.kms_encrypt({ first_name: 'jane' }.to_json),
+                  },
+                }
+              end
+
+              it 'is nil' do
+                expect(needs_completion_screen_reason).to be_nil
+              end
+            end
           end
         end
 

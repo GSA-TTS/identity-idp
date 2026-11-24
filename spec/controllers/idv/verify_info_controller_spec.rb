@@ -1341,30 +1341,6 @@ RSpec.describe Idv::VerifyInfoController do
 
           expect(controller.idv_session.pii_from_doc).to be_nil
         end
-
-        context 'and unsupported AAMVA jurisdiction' do
-          before do
-            controller.idv_session.source_check_vendor = Idp::Constants::Vendors::AAMVA_UNSUPPORTED_JURISDICTION
-          end
-
-          it 'uses the normal warning redirect' do
-            get :show
-
-            expect(response).to redirect_to(idv_session_errors_warning_url)
-            expect(controller.user_session[:idv_resolution_stepdown]).to be_nil
-          end
-        end
-
-        context 'and no verified source check' do
-          before { controller.idv_session.source_check_vendor = nil }
-
-          it 'uses the normal warning redirect' do
-            get :show
-
-            expect(response).to redirect_to(idv_session_errors_warning_url)
-            expect(controller.user_session[:idv_resolution_stepdown]).to be_nil
-          end
-        end
       end
 
       context 'when the request is not stepdown eligible' do

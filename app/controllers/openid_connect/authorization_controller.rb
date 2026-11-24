@@ -11,6 +11,7 @@ module OpenidConnect
     include ForcedReauthenticationConcern
     include OpenidConnectRedirectConcern
     include SignInDurationConcern
+    include IdvResolutionStepdownConcern
 
     before_action :build_authorize_form_from_params, only: [:index]
     before_action :set_devise_failure_redirect_for_concurrent_session_logout
@@ -350,11 +351,6 @@ module OpenidConnect
         service_provider: current_sp,
         resolved_authn_context_result: resolved_authn_context_result,
       )
-    end
-
-    def request_has_stepped_down?
-      resolved_authn_context_result.idv_resolution_stepdown_eligible? &&
-        user_session[:idv_resolution_stepdown].present?
     end
   end
 end
