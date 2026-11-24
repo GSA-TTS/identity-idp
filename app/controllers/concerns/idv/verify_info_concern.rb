@@ -123,6 +123,9 @@ module Idv
       elsif (failures.has_exception? && failures.threatmetrix_exception?) ||
             (!failures.has_exception? && failures.resolution_failed?)
         idv_failure_log_warning
+        if identity_resolution_stepdown_eligible?(failures:)
+          return handle_identity_resolution_stepdown
+        end
         redirect_to warning_url
       elsif failures.has_exception?
         idv_failure_log_error
@@ -131,6 +134,37 @@ module Idv
         idv_failure_log_warning
         redirect_to warning_url
       end
+    end
+
+    def identity_resolution_stepdown_eligible?(failures:)
+      resolved_authn_context_result.idv_resolution_stepdown_eligible? &&
+        # doc auth must pass and be valid
+        doc_auth_passed_with_valid_vendor? &&
+        # we only want to step down if resolution is the ONLY failed step.
+        failures.failed_stages == [:resolution]
+    end
+
+    def doc_auth_passed_with_valid_vendor?
+      idv_session.source_check_vendor.present? &&
+        idv_session.source_check_vendor == Idp::Constants::Vendors::AAMVA
+    end
+
+    def handle_identity_resolution_stepdown
+      user_session[:idv_resolution_stepdown] = {
+        issuer: current_sp.issuer,
+        pii: identity_resolution_stepdown_pii,
+      }
+
+      idv_session.clear
+
+      redirect_to sp_session_request_url_with_updated_params, allow_other_host: true
+    end
+
+    def identity_resolution_stepdown_pii
+      idv_session.pii_from_doc.to_h.merge(
+        ssn: idv_session.ssn,
+        **idv_session.updated_user_address.to_h,
+      ).compact_blank
     end
 
     def idv_failure_log_error
