@@ -86,7 +86,7 @@ RSpec.describe 'In Person Proofing: opt in ipp applicant expanded payload', js: 
     end
   end
 
-  context 'When the applicant selects a non-standard expiration option (LG-17733)' do
+  context 'When the applicant selects a non-standard expiration option' do
     before do
       allow(IdentityConfig.store).to receive(:usps_opt_in_ipp_applicant_with_document_data)
         .and_return(true)
@@ -105,10 +105,10 @@ RSpec.describe 'In Person Proofing: opt in ipp applicant expanded payload', js: 
       complete_prepare_step(user)
       complete_location_step
 
-      # Fill the state ID form, then choose the Military expiration option so the
-      # date inputs are disabled and no calendar expiration is submitted.
+      # Leave the expiration date blank and choose the Military option, since an
+      # entered date always takes precedence over a selected option.
       expect(page).to have_current_path(idv_in_person_state_id_path, wait: 10)
-      fill_out_state_id_form_ok(current_address_matches_id: true)
+      fill_out_state_id_form_ok(current_address_matches_id: true, expiration: nil)
       choose t('in_person_proofing.form.state_id.expiration_date_options.military')
       click_idv_continue
 
