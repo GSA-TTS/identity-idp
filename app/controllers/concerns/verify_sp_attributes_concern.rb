@@ -2,6 +2,14 @@
 
 module VerifySpAttributesConcern
   include IdvResolutionStepdownConcern
+  AUTH_ONLY_VERIFIED_ATTRIBUTES = %w[
+    email
+    all_emails
+    locale
+    x509_subject
+    x509_issuer
+    x509_presented
+  ].freeze
 
   def needs_completion_screen_reason
     return nil if sp_session[:issuer].blank?
@@ -26,7 +34,7 @@ module VerifySpAttributesConcern
   def update_verified_attributes
     identity = IdentityLinker.new(current_user, current_sp).link_identity(
       ial: linked_identity_ial,
-      verified_attributes: sp_session[:requested_attributes],
+      verified_attributes:,
       last_consented_at: Time.zone.now,
       clear_deleted_at: true,
       email_address_id: sp_email_preference_id,
@@ -39,6 +47,14 @@ module VerifySpAttributesConcern
       identity.update!(
         biometric_sharing_consent_at: (Time.zone.now if biometric_sharing_consent_granted?),
       )
+    end
+  end
+
+  def verified_attributes
+    return sp_session[:requested_attributes] unless request_has_stepped_down?
+
+    sp_session[:requested_attributes].select do |attr|
+      AUTH_ONLY_VERIFIED_ATTRIBUTES.include?(attr)
     end
   end
 

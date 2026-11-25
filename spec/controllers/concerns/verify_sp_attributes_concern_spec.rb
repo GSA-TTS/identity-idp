@@ -183,7 +183,7 @@ RSpec.describe VerifySpAttributesConcern do
       let(:sp_session) do
         {
           issuer: service_provider.issuer,
-          requested_attributes: %w[email verified_at],
+          requested_attributes: %w[email first_name verified_at],
         }
       end
 
@@ -196,6 +196,12 @@ RSpec.describe VerifySpAttributesConcern do
         controller.update_verified_attributes
 
         expect(user.identities.last.ial).to eq(1)
+      end
+
+      it 'does not mark proofed attributes as verified' do
+        controller.update_verified_attributes
+
+        expect(user.identities.last.verified_attributes).to eq(['email'])
       end
     end
   end
