@@ -103,6 +103,42 @@ RSpec.describe 'idv/shared/ssn.html.erb' do
     end
   end
 
+  context 'when itin feature is enabled' do
+    before do
+      assign(
+        :ssn_presenter,
+        Idv::SsnPresenter.new(
+          sp_name: sp_name, ssn_form: Idv::SsnFormatForm.new(nil),
+          step_indicator_steps: Idv::StepIndicatorConcern::STEP_INDICATOR_STEPS,
+          itin_enabled: true
+        ),
+      )
+      render template: 'idv/shared/ssn', locals: {
+        threatmetrix_session_id: session_id,
+        threatmetrix_javascript_urls: [tags_js_url],
+        threatmetrix_iframe_url: tags_iframe_url,
+      }
+    end
+
+    it 'renders the form tab for ssn and itin' do
+      expect(rendered).to have_css('div#form-tab-component')
+      expect(rendered).to have_button('SSN')
+      expect(rendered).to have_text(t('doc_auth.headings.ssn'))
+      expect(rendered).to have_text(t('doc_auth.info.ssn'))
+      expect(rendered).to have_text(t('doc_auth.info.learn_more'))
+      expect(rendered).to have_text(t('doc_auth.headings.no_ssn_or_itin'))
+      expect(rendered).to have_text(t('doc_auth.info.no_ssn_or_itin'))
+      expect(rendered).to have_field(name: 'doc_auth[ssn]')
+      expect(rendered).to have_button('ITIN', class: 'usa-button--outline')
+      expect(rendered).to have_text(t('doc_auth.headings.itin'))
+      expect(rendered).to have_text(t('doc_auth.info.itin'))
+      expect(rendered).to have_text(t('doc_auth.info.learn_more'))
+      expect(rendered).to have_text(t('doc_auth.headings.no_ssn_or_itin'))
+      expect(rendered).to have_text(t('doc_auth.info.no_ssn_or_itin'))
+      expect(rendered).to have_css('input[name="doc_auth[itin]"]', visible: false)
+    end
+  end
+
   def expect_script_tag_rendered
     expect(rendered).to have_css("script[nonce][src='#{tags_js_url}']", visible: false)
   end
