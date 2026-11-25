@@ -389,5 +389,37 @@ RSpec.describe Users::PasswordsController do
         expect(response).to render_template(:edit)
       end
     end
+
+    context 'auth-only user has a site key' do
+      let(:user) { create(:user) }
+
+      before do
+        create_site_key(user)
+        stub_sign_in(user)
+      end
+
+      it 'redirects to capture password when the site key is locked' do
+        get :edit
+
+        expect(response).to redirect_to(capture_password_path)
+        expect(controller.user_session[:stored_location]).to eq(manage_password_url)
+      end
+
+      it 'renders form when the site key is unlocked in the session' do
+        SiteKeys::Vault.new(user:, user_session: controller.user_session).unlock(user.password)
+
+        get :edit
+
+        expect(response).to render_template(:edit)
+      end
+
+      it 'renders form when the site key is unavailable in the session' do
+        SiteKeys::Vault.new(user:, user_session: controller.user_session).mark_unavailable
+
+        get :edit
+
+        expect(response).to render_template(:edit)
+      end
+    end
   end
 end

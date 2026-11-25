@@ -3,9 +3,10 @@
 module Users
   class PasswordsController < ApplicationController
     include ReauthenticationRequiredConcern
+    include SiteKeyConcern
 
     before_action :confirm_two_factor_authenticated
-    before_action :capture_password_if_pii_present_but_locked
+    before_action :capture_password_if_pii_or_site_key_locked
     before_action :confirm_recently_authenticated_2fa
 
     def edit
@@ -41,11 +42,16 @@ module Users
 
     private
 
-    def capture_password_if_pii_present_but_locked
-      return unless current_user.identity_verified? &&
-                    !Pii::Cacher.new(current_user, user_session).exists_in_session?
+    def capture_password_if_pii_or_site_key_locked
+      return unless pii_locked? || site_key_vault.needs_password?
+
       user_session[:stored_location] = request.url
       redirect_to capture_password_url
+    end
+
+    def pii_locked?
+      current_user.identity_verified? &&
+        !Pii::Cacher.new(current_user, user_session).exists_in_session?
     end
 
     def required_password_change?
