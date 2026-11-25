@@ -35,8 +35,9 @@ module Encryption
         end
       end.freeze
 
-      def initialize(password)
+      def initialize(password, kms_context: 'pii-encryption')
         @password = password
+        @kms_context = kms_context
         @aes_cipher = AesCipher.new
         @multi_region_kms_client = KmsClient.new(
           kms_key_id: IdentityConfig.store.aws_kms_multi_region_key_id,
@@ -68,11 +69,11 @@ module Encryption
 
       private
 
-      attr_reader :password, :aes_cipher, :multi_region_kms_client
+      attr_reader :password, :kms_context, :aes_cipher, :multi_region_kms_client
 
       def kms_encryption_context(user_uuid:)
         {
-          'context' => 'pii-encryption',
+          'context' => kms_context,
           'user_uuid' => user_uuid,
         }
       end
