@@ -258,6 +258,6 @@ class OpenidConnectUserInfoPresenter
   def site_key_private_key
     return @site_key_private_key if defined?(@site_key_private_key)
 
-    @site_key_private_key = out_of_band_session_accessor.load_site_key
+    @site_key_private_key = out_of_band_session_accessor.load_site_key(user: identity.user)
   end
 end

@@ -352,7 +352,7 @@ RSpec.describe OpenidConnect::UserInfoController do
         allow_site_keys_for(service_provider)
         accessor = OutOfBandSessionAccessor.new(identity.rails_session_id)
         accessor.put_empty_user_session(50)
-        accessor.put_site_key(site_key.private_key, 50)
+        accessor.put_site_key(site_key.private_key, 50, user:)
         AccessTokenBinding.store(access_token:, dpop_jkt: dpop_thumbprint, expires_in: 50)
         request.headers['DPoP'] =
           build_dpop_proof(http_url: url, http_method: 'POST', access_token:)
@@ -398,6 +398,39 @@ RSpec.describe OpenidConnect::UserInfoController do
         end
 
         it 'omits the site key claims but still answers' do
+          action
+
+          expect(response).to be_ok
+          expect(json_response).not_to have_key(:site_key)
+          expect(json_response).not_to have_key(:site_key_public)
+          expect(json_response[:sub]).to eq(identity.uuid)
+        end
+      end
+
+      context 'when another session replaced the site key' do
+        before do
+          user.site_key.destroy!
+          user.reload_site_key
+          create_site_key(user)
+        end
+
+        it 'omits the site key claims instead of returning a mismatched pair' do
+          action
+
+          expect(response).to be_ok
+          expect(json_response).not_to have_key(:site_key)
+          expect(json_response).not_to have_key(:site_key_public)
+          expect(json_response[:sub]).to eq(identity.uuid)
+        end
+      end
+
+      context 'when decrypting the cached session key fails transiently' do
+        before do
+          allow_any_instance_of(SessionEncryptor).to receive(:kms_decrypt)
+            .and_raise(Encryption::EncryptionError, 'kms down')
+        end
+
+        it 'omits the site key claims instead of returning 500' do
           action
 
           expect(response).to be_ok
