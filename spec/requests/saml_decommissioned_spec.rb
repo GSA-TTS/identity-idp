@@ -29,7 +29,7 @@ RSpec.describe 'SAML decommissioned endpoint', type: :request do
           params: UriService.params(saml_authn_request_url(overrides: saml_overrides))
 
       expect(response).to have_http_status(:not_found)
-      expect(response.body).to include('Decommissioned Access')
+      expect(response.body).to include('Access Unavailable')
       expect(response.body).to include('My Partner')
     end
 
@@ -93,14 +93,14 @@ RSpec.describe 'SAML decommissioned endpoint', type: :request do
       get "/api/saml/metadata#{decommissioned_year}"
 
       expect(response).to have_http_status(:not_found)
-      expect(response.body).to include('Decommissioned Access')
+      expect(response.body).to include('Access Unavailable')
     end
 
     it 'renders the decommissioned page for logout' do
       get "/api/saml/logout#{decommissioned_year}"
 
       expect(response).to have_http_status(:not_found)
-      expect(response.body).to include('Decommissioned Access')
+      expect(response.body).to include('Access Unavailable')
     end
   end
 
@@ -109,7 +109,7 @@ RSpec.describe 'SAML decommissioned endpoint', type: :request do
       get api_saml_auth_url(path_year: live_year),
           params: UriService.params(saml_authn_request_url)
 
-      expect(response.body).to_not include('Decommissioned Access')
+      expect(response.body).to_not include('Access Unavailable')
       expect(response).to be_redirect
     end
 
@@ -117,7 +117,7 @@ RSpec.describe 'SAML decommissioned endpoint', type: :request do
       get api_saml_metadata_url(path_year: live_year)
 
       expect(response).to be_ok
-      expect(response.body).to_not include('Decommissioned Access')
+      expect(response.body).to_not include('Access Unavailable')
     end
 
     it 'does not shadow /api/saml/complete' do
