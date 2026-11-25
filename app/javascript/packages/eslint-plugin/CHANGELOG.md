@@ -1,6 +1,23 @@
 ## Unreleased
 
+## v3.0.0
+
+### Breaking changes
+
+- **Flat config only.** The shareable configuration is now published exclusively in ESLint's [flat config](https://eslint.org/docs/latest/use/configure/configuration-files) format. The legacy `.eslintrc` format (`extends: ["plugin:@18f/eslint-plugin-identity/recommended"]`) is no longer supported. Consumers must migrate to `eslint.config.js` and spread the config array:
+  ```js
+  const identity = require('@18f/eslint-plugin-identity');
+  module.exports = [...identity.configs.recommended];
+  ```
+- `configs.recommended` is now an **array** of flat config objects (previously a single eslintrc object). React/TypeScript/Mocha/Prettier support continues to be layered in automatically based on detected peer dependencies.
+- Updated peer dependency to require ESLint >= 8.57 (the first version with flat config support in the ESLint 8 line). Supports ESLint 8.57, 9, and 10.
+- `eslint-plugin-import` moved from a peer dependency to a direct dependency, since the config always references it directly as a plugin object (flat config requires importing plugins rather than naming them as strings).
+
 ### Backwards-compatible changes
+
+- `globals` is now a direct dependency, used to supply the environment globals (`es2021`, `node`) that the legacy `env` key previously provided.
+
+### Backwards-compatible changes (carried over from unreleased)
 
 - Language ECMAVersion increased from `2018` to `"latest"`
 - Disabled many stylistic rules which would be redundant with Prettier formatting. For stylistic enforcement, it's recommended to opt-in to the optional Prettier rule extension.

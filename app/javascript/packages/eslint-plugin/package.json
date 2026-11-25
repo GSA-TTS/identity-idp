@@ -1,6 +1,6 @@
 {
   "name": "@18f/eslint-plugin-identity",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "private": false,
   "description": "ESLint plugin and shareable configurations for Login.gov JavaScript standards",
   "exports": {
@@ -22,13 +22,14 @@
   },
   "homepage": "https://github.com/18f/identity-idp",
   "dependencies": {
-    "@aduth/is-dependency": "^1.0.0"
+    "@aduth/is-dependency": "^1.0.0",
+    "eslint-plugin-import": "^2.32.0",
+    "globals": "^13.24.0"
   },
   "peerDependencies": {
     "@typescript-eslint/eslint-plugin": "*",
     "@typescript-eslint/parser": "*",
-    "eslint": ">=8",
-    "eslint-plugin-import": "*",
+    "eslint": ">=8.57",
     "eslint-plugin-jsx-a11y": "*",
     "eslint-plugin-mocha": "*",
     "eslint-plugin-prettier": "*",
