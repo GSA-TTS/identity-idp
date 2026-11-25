@@ -17,6 +17,7 @@ RSpec.describe ServiceProviderMfaPolicy do
       two_pieces_of_fair_evidence?: false,
       ialmax?: false,
       enhanced_ipp?: false,
+      idv_resolution_stepdown_eligible?: false,
     )
   end
   let(:auth_methods_session) { AuthMethodsSession.new(user_session: {}) }

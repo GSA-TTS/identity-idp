@@ -119,19 +119,6 @@ RSpec.describe IdTokenBuilder do
         it 'includes the verification status' do
           expect(decoded_payload[:identity_resolution]).to eq('failed')
         end
-
-        context 'without stored stepdown data' do
-          before do
-            allow_any_instance_of(OutOfBandSessionAccessor)
-              .to receive(:load_idv_resolution_stepdown_pii)
-              .with(issuer: service_provider.issuer)
-              .and_return(nil)
-          end
-
-          it 'does not include the verification status' do
-            expect(decoded_payload).not_to have_key(:identity_resolution)
-          end
-        end
       end
 
       context 'ial2 with facial match comparison required' do

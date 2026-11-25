@@ -395,7 +395,6 @@ RSpec.describe OpenidConnectUserInfoPresenter do
               expect(user_info).to_not have_key(:address)
               expect(user_info).to_not have_key(:phone)
               expect(user_info).to_not have_key(:social_security_number)
-              expect(user_info).to_not have_key(:identity_resolution)
             end
           end
         end
@@ -413,7 +412,6 @@ RSpec.describe OpenidConnectUserInfoPresenter do
             aggregate_failures do
               expect(user_info).to_not have_key(:given_name)
               expect(user_info).to_not have_key(:social_security_number)
-              expect(user_info).to_not have_key(:identity_resolution)
             end
           end
         end

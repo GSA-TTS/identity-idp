@@ -91,7 +91,10 @@ RSpec.describe OutOfBandSessionAccessor do
         expiration: 5.minutes.in_seconds,
       )
 
-      raw_session = store.send(:session_data).dig('warden.user.user.session', :idv_resolution_stepdown)
+      raw_session = store.send(:session_data).dig(
+        'warden.user.user.session',
+        :idv_resolution_stepdown,
+      )
 
       aggregate_failures do
         expect(raw_session).to have_key(:encrypted_pii)
