@@ -336,9 +336,9 @@ module Idp
       ipp_current_address_matches_id: true,
     ).freeze
 
-    MOCK_IDV_APPLICANT_WITH_PHONE = MOCK_IDV_APPLICANT_WITH_SSN.merge(phone: '12025551212').freeze
+    MOCK_IDV_APPLICANT_WITH_PHONE = MOCK_IDV_APPLICANT_WITH_SSN.merge(phone: '12025551212', phone_verified: true).freeze
 
     MOCK_IDV_APPLICANT_SAME_ADDRESS_AS_ID_WITH_PHONE =
-      MOCK_IDV_APPLICANT_SAME_ADDRESS_AS_ID.merge(phone: '12025551212').freeze
+      MOCK_IDV_APPLICANT_SAME_ADDRESS_AS_ID.merge(phone: '12025551212', phone_verified: true).freeze
   end
 end

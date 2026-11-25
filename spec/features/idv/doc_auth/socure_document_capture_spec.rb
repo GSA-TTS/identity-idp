@@ -534,6 +534,7 @@ RSpec.feature 'document capture step', :js, driver: :headless_chrome_mobile do
             dob: '2002-01-01',
             ssn: Idp::Constants::MOCK_IDV_APPLICANT_WITH_SSN[:ssn],
             phone: phone_number,
+            phone_verified: true,
             address1: '123 Example Street',
             address2: 'Baltimore MD 21201',
             city: 'Baltimore',

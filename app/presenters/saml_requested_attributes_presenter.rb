@@ -10,6 +10,7 @@ class SamlRequestedAttributesPresenter
     dob: :birthdate,
     ssn: :social_security_number,
     phone: :phone,
+    phone_verified: :phone_verified,
     address1: :address,
     address2: :address,
     city: :address,
@@ -32,6 +33,7 @@ class SamlRequestedAttributesPresenter
       attrs << :all_emails if bundle.include?(:all_emails)
       attrs << :locale if bundle.include?(:locale)
       attrs << :verified_at if bundle.include?(:verified_at)
+      attrs << :phone_verified if bundle.include?(:phone_verified)
       attrs
     end
   end

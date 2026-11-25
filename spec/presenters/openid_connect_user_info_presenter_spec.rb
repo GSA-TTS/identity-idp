@@ -42,6 +42,7 @@ RSpec.describe OpenidConnectUserInfoPresenter do
   subject(:presenter) { OpenidConnectUserInfoPresenter.new(identity, session_accessor:) }
 
   describe '#user_info' do
+    let(:phone_verified) { true }
     let(:pii) do
       {
         first_name: 'John',
@@ -53,6 +54,7 @@ RSpec.describe OpenidConnectUserInfoPresenter do
         state: 'DC',
         zipcode: '  12345-1234',
         phone: '(703) 555-5555',
+        phone_verified:,
         ssn: '666661234',
       }
     end
@@ -256,6 +258,7 @@ RSpec.describe OpenidConnectUserInfoPresenter do
         end
 
         context 'the user has verified their identity' do
+          let(:phone_verified) { false }
           it 'includes the proofed attributes' do
             aggregate_failures do
               expect(user_info[:ial]).to eq(Saml::Idp::Constants::IAL2_AUTHN_CONTEXT_CLASSREF)
@@ -265,7 +268,7 @@ RSpec.describe OpenidConnectUserInfoPresenter do
               expect(user_info[:family_name]).to eq('Smith')
               expect(user_info[:birthdate]).to eq('1970-12-31')
               expect(user_info[:phone]).to eq('+17035555555')
-              expect(user_info[:phone_verified]).to eq(true)
+              expect(user_info[:phone_verified]).to eq(false)
               expect(user_info[:address]).to eq(
                 formatted: "123 Fake St\nApt 456\nWashington, DC 12345",
                 street_address: "123 Fake St\nApt 456",

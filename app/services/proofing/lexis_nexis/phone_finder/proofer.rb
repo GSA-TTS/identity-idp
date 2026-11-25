@@ -24,6 +24,7 @@ module Proofing
             errors: {},
             exception: exception,
             vendor_name: 'lexisnexis:phone_finder',
+            vendor_verified: false,
           )
         end
 
@@ -59,6 +60,7 @@ module Proofing
             transaction_id: verification_response.conversation_id,
             reference: verification_response.reference,
             vendor_workflow: config.phone_finder_workflow,
+            vendor_verified: phone_verified?(verification_response),
           )
         end
 

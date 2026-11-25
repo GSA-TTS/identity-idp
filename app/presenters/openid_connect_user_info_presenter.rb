@@ -78,7 +78,7 @@ class OpenidConnectUserInfoPresenter
       social_security_number: stringify_attr(ial2_data.ssn),
       address: address,
       phone: phone,
-      phone_verified: phone.present? || nil,
+      phone_verified: ial2_data.phone_verified,
     }
   end
 
