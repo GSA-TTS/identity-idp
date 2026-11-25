@@ -153,6 +153,8 @@ module SiteKeys
       return unless unlocked?
 
       Base64.strict_decode64(SessionEncryptor.new.kms_decrypt(user_session[SESSION_KEY]))
+    rescue Encryption::EncryptionError, ArgumentError
+      nil
     end
   end
 end

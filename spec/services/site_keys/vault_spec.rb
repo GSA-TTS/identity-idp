@@ -181,5 +181,13 @@ RSpec.describe SiteKeys::Vault do
     it 'is nil in a session that has not entered the password' do
       expect(vault.private_key).to be_nil
     end
+
+    it 'is nil when KMS decryption fails transiently' do
+      vault.unlock(password)
+      allow_any_instance_of(SessionEncryptor).to receive(:kms_decrypt)
+        .and_raise(Encryption::EncryptionError, 'kms down')
+
+      expect(vault.private_key).to be_nil
+    end
   end
 end
