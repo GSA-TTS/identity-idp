@@ -11,6 +11,8 @@ module OpenidConnect
     include ForcedReauthenticationConcern
     include OpenidConnectRedirectConcern
     include SignInDurationConcern
+    include IdvResolutionStepdownConcern
+    include VerifySpAttributesConcern
 
     before_action :build_authorize_form_from_params, only: [:index]
     before_action :set_devise_failure_redirect_for_concurrent_session_logout
@@ -34,7 +36,7 @@ module OpenidConnect
         return redirect_to reactivate_account_url if user_needs_to_reactivate_account?
         return redirect_to url_for_pending_profile_reason if user_has_pending_profile?
         if identity_needs_verification? || facial_match_needed?
-          return redirect_to idv_url
+          return redirect_to idv_url unless request_has_stepped_down?
         end
         if needs_to_reproof?
           track_reproof_redirect
@@ -96,7 +98,7 @@ module OpenidConnect
     def link_identity_to_service_provider
       @linked_identity = @authorize_form.link_identity_to_service_provider(
         current_user: current_user,
-        ial: resolved_authn_context_int_ial,
+        ial: linked_identity_ial,
         rails_session_id: session.id,
         email_address_id: sp_email_preference_id_for_auth,
       )
@@ -154,20 +156,10 @@ module OpenidConnect
 
     def ial_context
       IalContext.new(
-        ial: resolved_authn_context_int_ial,
+        ial: linked_identity_ial,
         service_provider:,
         user: current_user,
       )
-    end
-
-    def resolved_authn_context_int_ial
-      if resolved_authn_context_result.ialmax?
-        0
-      elsif resolved_authn_context_result.identity_proofing?
-        2
-      else
-        1
-      end
     end
 
     def handle_successful_handoff
@@ -286,6 +278,7 @@ module OpenidConnect
         billed_ial: ial_context.bill_for_ial_1_or_2,
         sign_in_flow: session[:sign_in_flow],
         acr_values: sp_session[:acr_values],
+        asserted_ial_acr:,
         sign_in_duration_seconds:,
       )
 
@@ -350,6 +343,14 @@ module OpenidConnect
         service_provider: current_sp,
         resolved_authn_context_result: resolved_authn_context_result,
       )
+    end
+
+    def asserted_ial_acr
+      AuthnContextResolver.new(
+        user: current_user,
+        service_provider: service_provider,
+        acr_values: sp_session[:acr_values],
+      ).asserted_ial_acr
     end
   end
 end

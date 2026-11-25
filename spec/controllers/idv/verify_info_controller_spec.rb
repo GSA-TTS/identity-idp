@@ -79,8 +79,35 @@ RSpec.describe Idv::VerifyInfoController do
   end
 
   describe '#show' do
+    let(:idv_resolution_stepdown_sp) { create(:service_provider, :idv) }
+    let(:idv_resolution_stepdown_request_url) do
+      'http://test.host/openid_connect/authorize?' + {
+        client_id: idv_resolution_stepdown_sp.issuer,
+        redirect_uri: idv_resolution_stepdown_sp.redirect_uris.first,
+        response_type: 'code',
+        scope: 'openid profile social_security_number',
+        acr_values: Saml::Idp::Constants::IAL_VERIFIED_FACIAL_MATCH_REQUIRED_ACR,
+        state: SecureRandom.hex,
+        nonce: SecureRandom.hex,
+      }.to_query
+    end
+    let(:idv_resolution_stepdown_sp_session) do
+      {
+        issuer: idv_resolution_stepdown_sp.issuer,
+        acr_values: Saml::Idp::Constants::IAL_VERIFIED_FACIAL_MATCH_REQUIRED_ACR,
+        request_url: idv_resolution_stepdown_request_url,
+      }
+    end
+
     before do
       subject.idv_session.precheck_phone = { phone: '+1 703-555-5555' }
+    end
+
+    def stub_idv_resolution_stepdown_request
+      allow(controller).to receive(:sp_session).and_return(idv_resolution_stepdown_sp_session)
+      allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
+        .and_return([idv_resolution_stepdown_sp.issuer])
+      controller.idv_session.source_check_vendor = Idp::Constants::Vendors::AAMVA
     end
 
     it 'renders the show template' do
@@ -167,6 +194,18 @@ RSpec.describe Idv::VerifyInfoController do
 
         expect(@analytics).to have_logged_event('Rate Limit Reached', limiter_type: :proof_ssn)
       end
+
+      context 'with an identity resolution stepdown request' do
+        before { stub_idv_resolution_stepdown_request }
+
+        it 'does not store a stepdown payload' do
+          get :show
+
+          expect(response).to redirect_to idv_session_errors_ssn_failure_url
+          expect(@analytics).to have_logged_event('Rate Limit Reached', limiter_type: :proof_ssn)
+          expect(controller.user_session[:idv_resolution_stepdown]).to be_nil
+        end
+      end
     end
 
     context 'when the user is proofing rate limited' do
@@ -186,6 +225,21 @@ RSpec.describe Idv::VerifyInfoController do
         expect(response).to redirect_to idv_session_errors_failure_url
 
         expect(@analytics).to have_logged_event('Rate Limit Reached', limiter_type: :idv_resolution)
+      end
+
+      context 'with an identity resolution stepdown request' do
+        before { stub_idv_resolution_stepdown_request }
+
+        it 'redirects to rate limited url' do
+          get :show
+
+          expect(response).to redirect_to idv_session_errors_failure_url
+          expect(@analytics).to have_logged_event(
+            'Rate Limit Reached',
+            limiter_type: :idv_resolution,
+          )
+          expect(controller.user_session[:idv_resolution_stepdown]).to be_nil
+        end
       end
     end
 
@@ -1161,6 +1215,17 @@ RSpec.describe Idv::VerifyInfoController do
           put :show
           expect(response).to redirect_to idv_session_errors_exception_url
         end
+
+        context 'with an identity resolution stepdown request' do
+          before { stub_idv_resolution_stepdown_request }
+
+          it 'uses the normal exception redirect' do
+            get :show
+
+            expect(response).to redirect_to(idv_session_errors_exception_url)
+            expect(controller.user_session[:idv_resolution_stepdown]).to be_nil
+          end
+        end
       end
     end
 
@@ -1239,6 +1304,57 @@ RSpec.describe Idv::VerifyInfoController do
           step_name: 'verify_info',
           remaining_submit_attempts: kind_of(Numeric),
         )
+      end
+
+      context 'with an identity resolution stepdown request' do
+        before { stub_idv_resolution_stepdown_request }
+
+        it 'stores encrypted stepdown PII' do
+          get :show
+
+          stepdown = controller.user_session[:idv_resolution_stepdown]
+          decrypted_pii = JSON.parse(
+            SessionEncryptor.new.kms_decrypt(stepdown[:encrypted_pii]),
+            symbolize_names: true,
+          )
+
+          aggregate_failures do
+            expect(stepdown).to include(issuer: idv_resolution_stepdown_sp.issuer)
+            expect(stepdown).to have_key(:encrypted_pii)
+            expect(stepdown).not_to have_key(:pii)
+            expect(decrypted_pii).to include(
+              first_name: applicant_pii[:first_name],
+              last_name: applicant_pii[:last_name],
+              ssn: applicant_pii[:ssn],
+            )
+          end
+        end
+
+        it 'redirects back to authorize' do
+          get :show
+
+          expect(response).to redirect_to(idv_resolution_stepdown_request_url)
+        end
+
+        it 'clears the in-progress IdV session' do
+          get :show
+
+          expect(controller.idv_session.pii_from_doc).to be_nil
+        end
+      end
+
+      context 'when the request is not stepdown eligible' do
+        before do
+          allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
+            .and_return([])
+        end
+
+        it 'uses the normal warning redirect' do
+          get :show
+
+          expect(response).to redirect_to(idv_session_errors_warning_url)
+          expect(controller.user_session[:idv_resolution_stepdown]).to be_nil
+        end
       end
     end
 
