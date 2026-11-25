@@ -31,10 +31,17 @@ class IdTokenBuilder
   attr_reader :code
 
   def jwt_payload
-    OpenidConnectUserInfoPresenter.new(identity, session_accessor: session_accessor)
+    user_info_presenter
       .user_info
       .merge(id_token_claims)
       .merge(timestamp_claims)
+  end
+
+  def user_info_presenter
+    @user_info_presenter ||= OpenidConnectUserInfoPresenter.new(
+      identity,
+      session_accessor: session_accessor,
+    )
   end
 
   def id_token_claims
@@ -58,7 +65,7 @@ class IdTokenBuilder
 
   def acr
     return nil unless identity.acr_values.present?
-    resolved_authn_context.asserted_ial_acr
+    user_info_presenter.asserted_ial_acr
   end
 
   def determine_ial_max_acr
@@ -67,14 +74,6 @@ class IdTokenBuilder
     else
       Component::AcrComponentValues::IAL1
     end
-  end
-
-  def resolved_authn_context
-    @resolved_authn_context ||= AuthnContextResolver.new(
-      user: identity.user,
-      service_provider: identity.service_provider_record,
-      acr_values: identity.acr_values,
-    )
   end
 
   def expires

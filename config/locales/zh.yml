@@ -1345,6 +1345,19 @@ idv.unavailable.idv_explanation.without_sp: 你试图访问的机构需要确保
 idv.unavailable.next_steps_html: '%{status_page_link_html} 或者退出 %{app_name}，稍后再试。'
 idv.unavailable.status_page_link: 在我们的状态页面获得最新信息。
 idv.unavailable.technical_difficulties: 很遗憾，我们这边现在遇到技术困难，目前无法验证你的身份。
+idv.unresolved_handoff.consent_label: '我理解我的身份没有得到完全验证，并同意与 %{sp_name} 分享我的信息。'
+idv.unresolved_handoff.continue: '继续前往 %{sp_name}'
+idv.unresolved_handoff.errors.consent_required: '勾选此框以继续。'
+idv.unresolved_handoff.heading: '不经完全验证继续前往 %{sp_name}？'
+idv.unresolved_handoff.intro: '我们验证了你的身份证件，但无法将你输入的信息与公共记录匹配。'
+idv.unresolved_handoff.offer.button: '不经完全验证继续'
+idv.unresolved_handoff.offer.heading: '仍然继续前往 %{sp_name}'
+idv.unresolved_handoff.offer.text: '你的身份证件已验证。你可以继续前往 %{sp_name}，他们将完成对你身份的审查。'
+idv.unresolved_handoff.title: '继续前往 %{sp_name}'
+idv.unresolved_handoff.what_happens: '%{sp_name} 将审查你的信息，并可能联系你索取更多信息。你的 %{app_name} 账户将不会被身份验证，因此其他机构不会看到你的身份已验证。'
+idv.unresolved_handoff.what_happens_heading: '接下来会发生什么'
+idv.unresolved_handoff.what_we_share: '我们将与 %{sp_name} 分享你身份证件上的信息、你的社会保障号码以及你的地址。我们会告诉他们我们无法完全验证你的身份。'
+idv.unresolved_handoff.what_we_share_heading: '我们将分享的内容'
 idv.warning.address.heading: 我们找不到与你地址匹配的记录
 idv.warning.sessions.heading: 我们找不到与你个人信息匹配的记录
 idv.warning.state_id.cancel_button: 退出 %{app_name}

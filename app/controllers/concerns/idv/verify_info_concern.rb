@@ -341,9 +341,35 @@ module Idv
         failure_reason: failures.formatted_failure_reasons,
       )
 
+      record_unresolved_handoff_eligibility(summary_result:, failures:)
+
       if !summary_result.success?
         idv_failure(failures)
       end
+    end
+
+    def record_unresolved_handoff_eligibility(summary_result:, failures:)
+      if summary_result.success?
+        idv_session.unresolved_handoff_eligible = nil
+        return
+      end
+
+      eligibility = Idv::UnresolvedHandoffEligibility.new(
+        idv_session:,
+        service_provider: current_sp,
+        resolved_authn_context_result:,
+        failures:,
+        ssn_rate_limited: ssn_rate_limiter.limited?,
+      )
+      idv_session.unresolved_handoff_eligible = eligibility.eligible?
+
+      # Only log for allowlisted service providers, so other partners' failures stay quiet.
+      return unless current_sp&.idv_unresolved_handoff_allowed?
+
+      analytics.idv_unresolved_handoff_eligibility_checked(
+        eligible: eligibility.eligible?,
+        ineligible_reasons: eligibility.ineligible_reasons,
+      )
     end
 
     def load_async_state

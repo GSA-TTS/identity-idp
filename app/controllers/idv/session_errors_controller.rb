@@ -18,6 +18,7 @@ module Idv
     def warning
       @step_indicator_steps = step_indicator_steps
       @remaining_submit_attempts = resolution_rate_limiter.remaining_count
+      set_unresolved_handoff_path
       log_event(based_on_limiter: resolution_rate_limiter)
     end
 
@@ -35,6 +36,7 @@ module Idv
     def failure
       @expires_at = resolution_rate_limiter.expires_at
       @sp_name = decorated_sp_session.sp_name
+      set_unresolved_handoff_path
       log_event(based_on_limiter: resolution_rate_limiter)
     end
 
@@ -95,12 +97,25 @@ module Idv
       params[:flow] == 'in_person'
     end
 
+    # Offered after a resolution failure that Idv::UnresolvedHandoffEligibility allowed. Not set
+    # for ssn_failure, which shares the failure template.
+    def set_unresolved_handoff_path
+      # The hybrid (phone) flow has no user session, and its pages never hand off.
+      return unless user_fully_authenticated? && user_session
+      return unless idv_session.unresolved_handoff_eligible == true
+      return unless current_sp&.idv_unresolved_handoff_allowed?
+
+      @unresolved_handoff_sp_name = decorated_sp_session.sp_name
+      @unresolved_handoff_path = idv_unresolved_handoff_path
+    end
+
     def log_event(based_on_limiter: nil)
       options = {
         type: params[:action],
       }
 
       options[:remaining_submit_attempts] = based_on_limiter.remaining_count if based_on_limiter
+      options[:unresolved_handoff_offered] = true if @unresolved_handoff_path
 
       analytics.idv_session_error_visited(**options)
     end

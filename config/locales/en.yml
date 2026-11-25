@@ -1332,6 +1332,19 @@ idv.unavailable.idv_explanation.without_sp: The agency that you are trying to ac
 idv.unavailable.next_steps_html: '%{status_page_link_html} or exit %{app_name} and try again later.'
 idv.unavailable.status_page_link: Get updates on our status page
 idv.unavailable.technical_difficulties: Unfortunately, we are having technical difficulties and cannot verify your identity at this time.
+idv.unresolved_handoff.consent_label: 'I understand that my identity was not fully verified, and I agree to share my information with %{sp_name}.'
+idv.unresolved_handoff.continue: 'Continue to %{sp_name}'
+idv.unresolved_handoff.errors.consent_required: 'Check the box to continue.'
+idv.unresolved_handoff.heading: 'Continue to %{sp_name} without full verification?'
+idv.unresolved_handoff.intro: 'We verified your ID, but we couldn’t match the information you entered to public records.'
+idv.unresolved_handoff.offer.button: 'Continue without full verification'
+idv.unresolved_handoff.offer.heading: 'Continue to %{sp_name} anyway'
+idv.unresolved_handoff.offer.text: 'Your ID was verified. You can continue to %{sp_name}, and they will finish reviewing your identity.'
+idv.unresolved_handoff.title: 'Continue to %{sp_name}'
+idv.unresolved_handoff.what_happens: '%{sp_name} will review your information and may contact you for more. Your %{app_name} account will not be identity verified, so other agencies won’t see your identity as verified.'
+idv.unresolved_handoff.what_happens_heading: 'What happens next'
+idv.unresolved_handoff.what_we_share: 'We’ll share the information from your ID, your Social Security number and your address with %{sp_name}. We’ll tell them we couldn’t fully verify your identity.'
+idv.unresolved_handoff.what_we_share_heading: 'What we’ll share'
 idv.warning.address.heading: We couldn’t find records matching your address
 idv.warning.sessions.heading: We couldn’t find records matching your personal information
 idv.warning.state_id.cancel_button: Exit %{app_name}

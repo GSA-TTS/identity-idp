@@ -1343,6 +1343,19 @@ idv.unavailable.idv_explanation.without_sp: La agencia a la que está intentando
 idv.unavailable.next_steps_html: '%{status_page_link_html} o salga de %{app_name} y vuelva a intentarlo más tarde.'
 idv.unavailable.status_page_link: Obtenga las actualizaciones en nuestra página de estado
 idv.unavailable.technical_difficulties: Lamentablemente, tenemos problemas técnicos y no podemos verificar su identidad en este momento.
+idv.unresolved_handoff.consent_label: 'Entiendo que mi identidad no se verificó por completo y acepto compartir mi información con %{sp_name}.'
+idv.unresolved_handoff.continue: 'Continuar a %{sp_name}'
+idv.unresolved_handoff.errors.consent_required: 'Marque la casilla para continuar.'
+idv.unresolved_handoff.heading: '¿Desea continuar a %{sp_name} sin una verificación completa?'
+idv.unresolved_handoff.intro: 'Verificamos su identificación, pero no pudimos comparar la información que ingresó con los registros públicos.'
+idv.unresolved_handoff.offer.button: 'Continuar sin una verificación completa'
+idv.unresolved_handoff.offer.heading: 'Continuar a %{sp_name} de todos modos'
+idv.unresolved_handoff.offer.text: 'Su identificación se verificó. Puede continuar a %{sp_name}, que terminará de revisar su identidad.'
+idv.unresolved_handoff.title: 'Continuar a %{sp_name}'
+idv.unresolved_handoff.what_happens: '%{sp_name} revisará su información y es posible que le pida más datos. Su cuenta de %{app_name} no tendrá la identidad verificada, por lo que otras agencias no verán su identidad como verificada.'
+idv.unresolved_handoff.what_happens_heading: 'Qué sucede después'
+idv.unresolved_handoff.what_we_share: 'Compartiremos con %{sp_name} la información de su identificación, su número de Seguro Social y su dirección. Les diremos que no pudimos verificar su identidad por completo.'
+idv.unresolved_handoff.what_we_share_heading: 'Qué compartiremos'
 idv.warning.address.heading: No encontramos registros que coincidan con su dirección
 idv.warning.sessions.heading: No encontramos registros que coincidan con sus datos personales
 idv.warning.state_id.cancel_button: Salir de %{app_name}

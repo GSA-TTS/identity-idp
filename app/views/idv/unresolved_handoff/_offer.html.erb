@@ -1,0 +1,15 @@
+<%#
+Offers Idv::UnresolvedHandoff on the resolution warning and failure pages.
+locals:
+* url: the handoff consent page
+* sp_name: the service provider's name
+%>
+<div class="margin-top-4 js-unresolved-handoff-offer">
+  <h2 class="heading-s"><%= t('idv.unresolved_handoff.offer.heading', sp_name:) %></h2>
+  <p><%= t('idv.unresolved_handoff.offer.text', sp_name:) %></p>
+  <%= render ButtonComponent.new(
+        url:,
+        outline: true,
+        full_width: true,
+      ).with_content(t('idv.unresolved_handoff.offer.button', sp_name:)) %>
+</div>

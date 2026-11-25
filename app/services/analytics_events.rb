@@ -6823,6 +6823,37 @@ module AnalyticsEvents
     )
   end
 
+  # An unresolved handoff was used to authorize an OpenID Connect request
+  # @param [Boolean] success Whether the authorization request was valid
+  def idv_unresolved_handoff_authorized(success:, **extra)
+    track_event(:idv_unresolved_handoff_authorized, success:, **extra)
+  end
+
+  # Identity resolution failed for an allowlisted service provider; records whether the user may
+  # continue with an unresolved handoff
+  # @param [Boolean] eligible Whether the handoff is offered
+  # @param [Array<Symbol>] ineligible_reasons Each rule the user did not meet
+  def idv_unresolved_handoff_eligibility_checked(eligible:, ineligible_reasons:, **extra)
+    track_event(
+      :idv_unresolved_handoff_eligibility_checked,
+      eligible:,
+      ineligible_reasons:,
+      **extra,
+    )
+  end
+
+  # The user submitted the unresolved handoff consent page
+  # @param [Boolean] success Whether the user gave consent
+  # @param [Hash] error_details Details for errors that occurred in unsuccessful submission
+  def idv_unresolved_handoff_submitted(success:, error_details: nil, **extra)
+    track_event(:idv_unresolved_handoff_submitted, success:, error_details:, **extra)
+  end
+
+  # The user visited the unresolved handoff consent page
+  def idv_unresolved_handoff_visited(**extra)
+    track_event(:idv_unresolved_handoff_visited, **extra)
+  end
+
   # Track when USPS auth token refresh job completed
   def idv_usps_auth_token_refresh_job_completed(**extra)
     track_event(

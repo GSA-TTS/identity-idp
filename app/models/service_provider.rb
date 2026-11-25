@@ -91,6 +91,12 @@ class ServiceProvider < ApplicationRecord
     end
   end
 
+  # Whether a user who passes every ID document check but fails identity resolution may continue
+  # to this service provider without a verified profile. See Idv::UnresolvedHandoff.
+  def idv_unresolved_handoff_allowed?
+    IdentityConfig.store.idv_unresolved_handoff_allowed_issuers.include?(issuer)
+  end
+
   def token_exchange_actor?
     IdentityConfig.store.token_exchange_allowed_broker_issuers.include?(issuer)
   end

@@ -1,0 +1,41 @@
+<% self.title = t('idv.unresolved_handoff.title', sp_name: @sp_name) %>
+
+<%= render PageHeadingComponent.new.with_content(t('idv.unresolved_handoff.heading', sp_name: @sp_name)) %>
+
+<p><%= t('idv.unresolved_handoff.intro') %></p>
+
+<h2><%= t('idv.unresolved_handoff.what_we_share_heading') %></h2>
+<p><%= t('idv.unresolved_handoff.what_we_share', sp_name: @sp_name) %></p>
+
+<h2><%= t('idv.unresolved_handoff.what_happens_heading') %></h2>
+<p><%= t('idv.unresolved_handoff.what_happens', sp_name: @sp_name, app_name: APP_NAME) %></p>
+
+<%= simple_form_for(
+      @consent_form,
+      as: :unresolved_handoff,
+      url: idv_unresolved_handoff_path,
+      method: :post,
+      html: { class: 'margin-top-2 margin-bottom-5' },
+    ) do |f| %>
+  <%= render ValidatedFieldComponent.new(
+        form: f,
+        name: :consent_given,
+        as: :boolean,
+        label: t('idv.unresolved_handoff.consent_label', sp_name: @sp_name),
+        required: true,
+      ) %>
+  <div class="margin-top-4">
+    <%= render(
+          SpinnerButtonComponent.new(
+            type: :submit,
+            big: true,
+            wide: true,
+            spin_on_click: false,
+          ).with_content(t('idv.unresolved_handoff.continue', sp_name: @sp_name)),
+        ) %>
+  </div>
+<% end %>
+
+<%= render PageFooterComponent.new do %>
+  <%= link_to t('links.cancel'), idv_cancel_path(step: :unresolved_handoff) %>
+<% end %>

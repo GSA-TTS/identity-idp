@@ -21,7 +21,12 @@ class OpenidConnectUserInfoPresenter
 
     info[:all_emails] = all_emails_from_sp_identity(identity) if scoper.all_emails_requested?
     info[:locale] = web_locale if scoper.locale_requested?
-    info.merge!(ial2_attributes) if identity_proofing_requested_for_verified_user?
+    if identity_proofing_requested_for_verified_user?
+      info.merge!(ial2_attributes)
+    elsif unresolved_idv_handoff
+      info.merge!(ial2_attributes)
+      info[:verification_status] = unresolved_idv_handoff['verification_status']
+    end
 
     if scoper.document_images_requested? && document_images_shareable?
       info[:document_images] = document_images
@@ -29,7 +34,7 @@ class OpenidConnectUserInfoPresenter
     end
     info.merge!(x509_attributes) if scoper.x509_scopes_requested?
     info[:verified_at] = verified_at if scoper.verified_at_requested?
-    info[:ial] = authn_context_resolver.asserted_ial_acr
+    info[:ial] = asserted_ial_acr
     info[:aal] = requested_aal_value
     info[:auth_time] = auth_time
 
@@ -38,6 +43,13 @@ class OpenidConnectUserInfoPresenter
 
   def url_options
     {}
+  end
+
+  # The IAL `acr` for the ID token and the userinfo `ial` claim.
+  def asserted_ial_acr
+    return Idv::UnresolvedHandoff::ACR if unresolved_idv_handoff
+
+    authn_context_resolver.asserted_ial_acr
   end
 
   private
@@ -167,8 +179,25 @@ class OpenidConnectUserInfoPresenter
   end
 
   def ial2_data
-    @ial2_data ||= out_of_band_session_accessor.load_pii(active_profile.id) ||
-                   Pii::Attributes.new_from_hash({})
+    @ial2_data ||= if unresolved_idv_handoff
+                     Pii::Attributes.new_from_hash(unresolved_idv_handoff['pii'].to_h)
+                   else
+                     out_of_band_session_accessor.load_pii(active_profile.id) ||
+                       Pii::Attributes.new_from_hash({})
+                   end
+  end
+
+  # An authorized Idv::UnresolvedHandoff for this identity's service provider. A user who has
+  # since verified normally gets their profile instead.
+  #
+  # @return [Hash, nil]
+  def unresolved_idv_handoff
+    return @unresolved_idv_handoff if defined?(@unresolved_idv_handoff)
+
+    @unresolved_idv_handoff =
+      if active_profile.blank? && identity.service_provider_record&.idv_unresolved_handoff_allowed?
+        out_of_band_session_accessor.load_unresolved_idv_handoff(issuer: identity.service_provider)
+      end
   end
 
   def identity_proofing_requested_for_verified_user?
