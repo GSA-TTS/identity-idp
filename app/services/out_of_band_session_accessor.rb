@@ -44,6 +44,16 @@ class OutOfBandSessionAccessor
     session_data.dig('warden.user.user.session', :web_locale)
   end
 
+  # @return [String, nil] the person's site key private scalar, cached KMS-encrypted in the
+  # session while it is unlocked and matching the current stored wraps; nil when locked, stale,
+  # or transiently unreadable.
+  def load_site_key(user:)
+    session = session_data.dig('warden.user.user.session')
+    return unless user && session
+
+    SiteKeys::Vault.new(user:, user_session: session).private_key
+  end
+
   # @return [X509::Attributes]
   def load_x509
     X509::Attributes.new_from_json(session_data.dig('warden.user.user.session', :decrypted_x509))
@@ -98,6 +108,19 @@ class OutOfBandSessionAccessor
   # @param [String] locale
   def put_locale(locale, expiration = 5.minutes)
     put({ web_locale: locale }, expiration)
+  end
+
+  # @api private
+  # Seeds the cached site key the way `SiteKeys::Vault` does at sign-in, for tests.
+  def put_site_key(private_key, expiration = 5.minutes, user: nil)
+    data = {
+      encrypted_site_key: SessionEncryptor.new.kms_encrypt(Base64.strict_encode64(private_key)),
+    }
+    if user
+      data[:site_key_fingerprint] =
+        SiteKeys::Vault.new(user:, user_session: {}).stored_fingerprint
+    end
+    put(data, expiration)
   end
 
   # @api private
