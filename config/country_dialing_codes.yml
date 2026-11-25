@@ -697,7 +697,7 @@ MP:
   supports_sms: true
   supports_sms_unconfirmed: true
   supports_voice: true
-  supports_voice_unconfirmed: true
+  supports_voice_unconfirmed: false
 MQ:
   country_code: '596'
   name: Martinique
