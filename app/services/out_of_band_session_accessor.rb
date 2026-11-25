@@ -39,6 +39,18 @@ class OutOfBandSessionAccessor
     Pii::Cacher.new(nil, session).fetch(profile_id) if session
   end
 
+  # @return [Pii::Attributes, nil]
+  def load_idv_resolution_stepdown_pii(issuer:)
+    data = session_data.dig('warden.user.user.session', :idv_resolution_stepdown)
+
+    return if data.blank? || data[:encrypted_pii].blank?
+    return if data[:issuer] != issuer
+
+    pii_json = SessionEncryptor.new.kms_decrypt(data[:encrypted_pii])
+
+    Pii::Attributes.new_from_hash(JSON.parse(pii_json, symbolize_names: true))
+  end
+
   # @return [String, nil]
   def load_web_locale
     session_data.dig('warden.user.user.session', :web_locale)
@@ -77,6 +89,21 @@ class OutOfBandSessionAccessor
   def put_pii(profile_id:, pii:, expiration: 5.minutes)
     data = {
       encrypted_profiles: { profile_id.to_s => SessionEncryptor.new.kms_encrypt(pii.to_h.to_json) },
+    }
+
+    put(data, expiration)
+  end
+
+  # @api private
+  # Only used for convenience in tests
+  # @param [Pii::Attributes] pii
+  # @param [#to_s] issuer string
+  def put_idv_resolution_stepdown(issuer:, pii:, expiration: 5.minutes)
+    data = {
+      idv_resolution_stepdown: {
+        issuer:,
+        encrypted_pii: SessionEncryptor.new.kms_encrypt(pii.to_h.to_json),
+      },
     }
 
     put(data, expiration)

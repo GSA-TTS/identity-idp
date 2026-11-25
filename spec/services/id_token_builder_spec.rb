@@ -94,6 +94,33 @@ RSpec.describe IdTokenBuilder do
         end
       end
 
+      context 'identity resolution stepdown' do
+        let(:user) { create(:user, :fully_registered) }
+        let(:service_provider) { create(:service_provider) }
+
+        before do
+          identity.user = user
+          identity.ial = 1
+          identity.service_provider = service_provider.issuer
+          identity.service_provider_record = service_provider
+          identity.acr_values = Saml::Idp::Constants::IAL_VERIFIED_FACIAL_MATCH_REQUIRED_ACR
+          allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
+            .and_return([service_provider.issuer])
+          allow_any_instance_of(OutOfBandSessionAccessor)
+            .to receive(:load_idv_resolution_stepdown_pii)
+            .with(issuer: service_provider.issuer)
+            .and_return(Pii::Attributes.new_from_hash(first_name: 'Jane'))
+        end
+
+        it 'sets the acr to IAL1' do
+          expect(decoded_payload[:acr]).to eq(Saml::Idp::Constants::IAL_AUTH_ONLY_ACR)
+        end
+
+        it 'includes the verification status' do
+          expect(decoded_payload[:identity_resolution]).to eq('failed')
+        end
+      end
+
       context 'ial2 with facial match comparison required' do
         let(:user) { create(:user, :proofed_with_selfie) }
 
