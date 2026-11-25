@@ -109,6 +109,8 @@ module VerifySpAttributesConcern
   end
 
   def linked_identity_ial
+    return 1 if request_has_stepped_down?
+
     if resolved_authn_context_result.ialmax?
       0
     elsif resolved_authn_context_result.identity_proofing?

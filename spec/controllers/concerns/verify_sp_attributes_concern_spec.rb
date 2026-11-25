@@ -120,6 +120,8 @@ RSpec.describe VerifySpAttributesConcern do
     let(:sp_session) do
       { issuer: service_provider.issuer, requested_attributes: ['email'] }
     end
+    let(:identity_proofing) { false }
+    let(:stepdown_eligible) { false }
 
     before do
       allow(controller).to receive(:current_user).and_return(user)
@@ -127,7 +129,10 @@ RSpec.describe VerifySpAttributesConcern do
       allow(controller).to receive(:sp_session).and_return(sp_session)
       allow(controller).to receive(:selected_email_id_for_linked_identity).and_return(nil)
       allow(controller).to receive(:resolved_authn_context_result)
-        .and_return(double(ialmax?: false, identity_proofing?: false))
+        .and_return(double(
+          ialmax?: false, identity_proofing?: identity_proofing,
+          idv_resolution_stepdown_eligible?: stepdown_eligible
+        ))
     end
 
     context 'when the identity already has a selected email and consent has expired' do
@@ -169,6 +174,28 @@ RSpec.describe VerifySpAttributesConcern do
           end.to change { user.reload.last_identity.email_address_id }
             .from(email_address.id).to(newly_selected_email.id)
         end
+      end
+    end
+
+    context 'with identity resolution stepdown' do
+      let(:stepdown_eligible) { true }
+      let(:identity_proofing) { true }
+      let(:sp_session) do
+        {
+          issuer: service_provider.issuer,
+          requested_attributes: %w[email verified_at],
+        }
+      end
+
+      before do
+        allow(controller).to receive(:request_has_stepped_down?).and_return(true)
+        IdentityLinker.new(user, service_provider).link_identity(ial: 1)
+      end
+
+      it 'links the identity at IAL1' do
+        controller.update_verified_attributes
+
+        expect(user.identities.last.ial).to eq(1)
       end
     end
   end

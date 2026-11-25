@@ -115,6 +115,7 @@ module SignUp
       attributes = {
         ial2: resolved_authn_context_result.identity_proofing?,
         ialmax: resolved_authn_context_result.ialmax?,
+        idv_resolution_stepdown: request_has_stepped_down?,
         service_provider_name: decorated_sp_session.sp_name,
         sp_session_requested_attributes: sp_session[:requested_attributes],
         page_occurence: page_occurence,

@@ -19,7 +19,7 @@ module BillableEventTrackable
       request_id: request_id,
       user: current_user,
       billable: billable,
-      ial: ial_context.bill_for_ial_1_or_2,
+      ial: sp_return_log_ial,
       issuer: current_sp.issuer,
       profile_id: ial_context.bill_for_ial_1_or_2 > 1 ? current_user.active_profile&.id : nil,
       profile_verified_at: ial_context.bill_for_ial_1_or_2 > 1 ?
@@ -92,5 +92,11 @@ module BillableEventTrackable
     issuer = sp_session[:issuer]
     # check if the user has visited this SP at either IAL1 or IAL2 in this session
     !user_session["auth_counted_#{issuer}ial1"] && !user_session["auth_counted_#{issuer}"]
+  end
+
+  def sp_return_log_ial
+    return 1 if current_user.active_profile.blank?
+
+    ial_context.bill_for_ial_1_or_2
   end
 end

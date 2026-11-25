@@ -132,7 +132,7 @@ RSpec.describe OpenidConnect::AuthorizationController do
               allow_prompt_create: false,
               unauthorized_scope: true,
               user_fully_authenticated: true,
-              acr_values: 'http://idmanagement.gov/ns/assurance/ial/1',
+              acr_values: Saml::Idp::Constants::IAL1_AUTHN_CONTEXT_CLASSREF,
               code_challenge_present: false,
               scope: 'openid',
               token_exchange_requested: false,
@@ -150,7 +150,8 @@ RSpec.describe OpenidConnect::AuthorizationController do
               billed_ial: 1,
               sign_in_duration_seconds: 15,
               sign_in_flow:,
-              acr_values: 'http://idmanagement.gov/ns/assurance/ial/1',
+              acr_values: Saml::Idp::Constants::IAL1_AUTHN_CONTEXT_CLASSREF,
+              asserted_ial_acr: Saml::Idp::Constants::IAL1_AUTHN_CONTEXT_CLASSREF,
             )
 
             expect(@analytics).to_not have_logged_event(
@@ -235,7 +236,7 @@ RSpec.describe OpenidConnect::AuthorizationController do
                 allow_prompt_create: false,
                 unauthorized_scope: false,
                 user_fully_authenticated: true,
-                acr_values: 'http://idmanagement.gov/ns/assurance/ial/2',
+                acr_values: Saml::Idp::Constants::IAL2_AUTHN_CONTEXT_CLASSREF,
                 code_challenge_present: false,
                 scope: 'openid profile',
                 token_exchange_requested: false,
@@ -255,7 +256,8 @@ RSpec.describe OpenidConnect::AuthorizationController do
                 sign_in_duration_seconds: 15,
                 billed_ial: 2,
                 sign_in_flow:,
-                acr_values: 'http://idmanagement.gov/ns/assurance/ial/2',
+                acr_values: Saml::Idp::Constants::IAL2_AUTHN_CONTEXT_CLASSREF,
+                asserted_ial_acr: Saml::Idp::Constants::IAL2_AUTHN_CONTEXT_CLASSREF,
               )
             end
 
@@ -289,6 +291,23 @@ RSpec.describe OpenidConnect::AuthorizationController do
                   action
 
                   expect(response).to redirect_to(/^#{params[:redirect_uri]}/)
+                end
+
+                it 'links the identity at IAL1' do
+                  action
+
+                  expect(user.identities.last.ial).to eq(1)
+                end
+
+                it 'logs the return at IAL1' do
+                  stub_analytics
+                  action
+
+                  expect(SpReturnLog.find_by(issuer: client_id).ial).to eq(1)
+                  expect(@analytics).to have_logged_event(
+                    'SP redirect initiated',
+                    hash_including(ial: 1, billed_ial: 1),
+                  )
                 end
               end
 
@@ -724,7 +743,7 @@ RSpec.describe OpenidConnect::AuthorizationController do
                   allow_prompt_create: false,
                   unauthorized_scope: false,
                   user_fully_authenticated: true,
-                  acr_values: 'http://idmanagement.gov/ns/assurance/ial/0',
+                  acr_values: Saml::Idp::Constants::IALMAX_AUTHN_CONTEXT_CLASSREF,
                   code_challenge_present: false,
                   scope: 'openid profile',
                   token_exchange_requested: false,
@@ -744,7 +763,8 @@ RSpec.describe OpenidConnect::AuthorizationController do
                   sign_in_duration_seconds: 15,
                   billed_ial: 2,
                   sign_in_flow:,
-                  acr_values: 'http://idmanagement.gov/ns/assurance/ial/0',
+                  acr_values: Saml::Idp::Constants::IALMAX_AUTHN_CONTEXT_CLASSREF,
+                  asserted_ial_acr: Saml::Idp::Constants::IAL2_AUTHN_CONTEXT_CLASSREF,
                 )
               end
 
@@ -832,7 +852,7 @@ RSpec.describe OpenidConnect::AuthorizationController do
                   allow_prompt_create: false,
                   unauthorized_scope: false,
                   user_fully_authenticated: true,
-                  acr_values: 'http://idmanagement.gov/ns/assurance/ial/0',
+                  acr_values: Saml::Idp::Constants::IALMAX_AUTHN_CONTEXT_CLASSREF,
                   code_challenge_present: false,
                   scope: 'openid profile',
                   token_exchange_requested: false,
@@ -852,7 +872,8 @@ RSpec.describe OpenidConnect::AuthorizationController do
                   sign_in_duration_seconds: 15,
                   billed_ial: 1,
                   sign_in_flow:,
-                  acr_values: 'http://idmanagement.gov/ns/assurance/ial/0',
+                  acr_values: Saml::Idp::Constants::IALMAX_AUTHN_CONTEXT_CLASSREF,
+                  asserted_ial_acr: Saml::Idp::Constants::IAL1_AUTHN_CONTEXT_CLASSREF,
                 )
               end
             end
@@ -913,7 +934,7 @@ RSpec.describe OpenidConnect::AuthorizationController do
                   allow_prompt_create: false,
                   unauthorized_scope: false,
                   user_fully_authenticated: true,
-                  acr_values: 'http://idmanagement.gov/ns/assurance/ial/0',
+                  acr_values: Saml::Idp::Constants::IALMAX_AUTHN_CONTEXT_CLASSREF,
                   code_challenge_present: false,
                   scope: 'openid profile',
                   token_exchange_requested: false,
@@ -933,7 +954,8 @@ RSpec.describe OpenidConnect::AuthorizationController do
                   sign_in_duration_seconds: 15,
                   billed_ial: 1,
                   sign_in_flow:,
-                  acr_values: 'http://idmanagement.gov/ns/assurance/ial/0',
+                  acr_values: Saml::Idp::Constants::IALMAX_AUTHN_CONTEXT_CLASSREF,
+                  asserted_ial_acr: Saml::Idp::Constants::IAL1_AUTHN_CONTEXT_CLASSREF,
                 )
               end
             end

@@ -9124,7 +9124,8 @@ module AnalyticsEvents
   # @param [Integer] billed_ial
   # @param [String, nil] sign_in_flow
   # @param [String, nil] vtr
-  # @param [String, nil] acr_values
+  # @param [String, nil] acr_values requested acr values
+  # @param [String, nil] asserted_ial_acr the actual asserted acr value
   # @param [Integer] sign_in_duration_seconds
   # TODO: For ease of validating attempt bundle information, can we pass the profile id
   # in those events as well as this one?
@@ -9132,6 +9133,7 @@ module AnalyticsEvents
     ial:,
     billed_ial:,
     sign_in_flow:,
+    asserted_ial_acr:,
     acr_values:,
     sign_in_duration_seconds:,
     vtr: nil,
@@ -9144,6 +9146,7 @@ module AnalyticsEvents
       sign_in_flow:,
       vtr:,
       acr_values:,
+      asserted_ial_acr:,
       sign_in_duration_seconds:,
       **extra,
     )
@@ -9401,6 +9404,7 @@ module AnalyticsEvents
   # User registration has been handed off to agency page
   # @param [Boolean] ial2 Whether the user registration was for a verified identity
   # @param [Integer] ialmax Whether the user registration was for an IALMax request
+  # @param [Integer] idv_resolution_stepdown Whether the request stepped down from IAL2 to auth-only
   # @param [String] service_provider_name The friendly name of the service provider
   # @param ['account-page','agency-page'] page_occurence Where the user concluded registration
   # @param [String] needs_completion_screen_reason The reason for the consent screen being
@@ -9412,6 +9416,7 @@ module AnalyticsEvents
   # @param [String, nil] doc_auth_result The doc auth result
   def user_registration_agency_handoff_page_visit(
     ial2:,
+    idv_resolution_stepdown:,
     service_provider_name:,
     page_occurence:,
     needs_completion_screen_reason:,
@@ -9426,6 +9431,7 @@ module AnalyticsEvents
       'User registration: agency handoff visited',
       ial2:,
       ialmax:,
+      idv_resolution_stepdown:,
       service_provider_name:,
       page_occurence:,
       needs_completion_screen_reason:,
@@ -9450,6 +9456,7 @@ module AnalyticsEvents
   # Tracks when user completes registration
   # @param [Boolean] ial2 Whether the user registration was for a verified identity
   # @param [Boolean] ialmax Whether the user registration was for an IALMax request
+  # @param [Boolean] idv_resolution_stepdown Whether the request stepped donw from IAL2 to auth-only
   # @param [String] service_provider_name The friendly name of the service provider
   # @param ['account-page','agency-page'] page_occurence Where the user concluded registration
   # @param [String] needs_completion_screen_reason The reason for the consent screen being
@@ -9461,6 +9468,7 @@ module AnalyticsEvents
   # @param [String, nil] doc_auth_result The doc auth result
   def user_registration_complete(
     ial2:,
+    idv_resolution_stepdown:,
     service_provider_name:,
     page_occurence:,
     in_account_creation_flow:,
@@ -9475,6 +9483,7 @@ module AnalyticsEvents
       'User registration: complete',
       ial2:,
       ialmax:,
+      idv_resolution_stepdown:,
       service_provider_name:,
       page_occurence:,
       in_account_creation_flow:,
