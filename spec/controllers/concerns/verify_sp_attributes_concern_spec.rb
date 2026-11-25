@@ -183,11 +183,7 @@ RSpec.describe VerifySpAttributesConcern do
       let(:sp_session) do
         {
           issuer: service_provider.issuer,
-<<<<<<< HEAD
           requested_attributes: %w[email first_name verified_at],
-=======
-          requested_attributes: %w[email verified_at],
->>>>>>> a62a8bd (Update IAL handling in identities and analytics)
         }
       end
 
