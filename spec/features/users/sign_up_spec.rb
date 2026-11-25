@@ -502,6 +502,7 @@ RSpec.feature 'Sign Up' do
         billed_ial: 1,
         sign_in_flow: 'create_account',
         acr_values: Saml::Idp::Constants::IAL1_AUTHN_CONTEXT_CLASSREF,
+        asserted_ial_acr: Saml::Idp::Constants::IAL1_AUTHN_CONTEXT_CLASSREF,
       )
     end
   end

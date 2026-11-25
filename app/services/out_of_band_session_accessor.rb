@@ -43,7 +43,7 @@ class OutOfBandSessionAccessor
   def load_idv_resolution_stepdown_pii(issuer:)
     data = session_data.dig('warden.user.user.session', :idv_resolution_stepdown)
 
-    return if data.blank?
+    return if data.blank? || data[:encrypted_pii].blank?
     return if data[:issuer] != issuer
 
     pii_json = SessionEncryptor.new.kms_decrypt(data[:encrypted_pii])
