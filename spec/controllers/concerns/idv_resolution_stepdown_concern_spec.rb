@@ -109,4 +109,44 @@ RSpec.describe IdvResolutionStepdownConcern do
       end
     end
   end
+
+  describe '#idv_resolution_stepdown_time' do
+    subject(:idv_resolution_stepdown_time) { controller.idv_resolution_stepdown_time }
+    let(:idv_resolution_stepdown_eligible) { true }
+    let(:stepped_down_at) { Time.zone.parse('2026-11-25T14:30:00Z') }
+
+    before do
+      controller.user_session[:idv_resolution_stepdown] = {
+        issuer: stored_issuer,
+        encrypted_pii:,
+        stepped_down_at: stepped_down_at&.iso8601,
+      }
+      allow(controller).to receive(:current_sp).and_return service_provider
+    end
+
+    context 'when the person stepped down for the current service provider' do
+      let(:stored_issuer) { issuer }
+
+      it 'returns the time of the step-down' do
+        expect(idv_resolution_stepdown_time).to eq(stepped_down_at)
+      end
+    end
+
+    context 'when the person stepped down for another service provider' do
+      let(:stored_issuer) { 'urn:gov:gsa:openidconnect:other' }
+
+      it 'returns nil' do
+        expect(idv_resolution_stepdown_time).to be_nil
+      end
+    end
+
+    context 'when the stored step-down has no time' do
+      let(:stored_issuer) { issuer }
+      let(:stepped_down_at) { nil }
+
+      it 'returns nil' do
+        expect(idv_resolution_stepdown_time).to be_nil
+      end
+    end
+  end
 end

@@ -145,6 +145,9 @@ module Idv
       user_session[:idv_resolution_stepdown] = {
         issuer: current_sp.issuer,
         encrypted_pii: SessionEncryptor.new.kms_encrypt(identity_resolution_stepdown_pii.to_json),
+        # The consent the person gives on the next screen must be newer than this, so an older
+        # consent to the same service provider never approves the stepped-down attributes.
+        stepped_down_at: Time.zone.now.iso8601,
       }
 
       idv_session.clear

@@ -19,4 +19,13 @@ module IdvResolutionStepdownConcern
     pii_json = SessionEncryptor.new.kms_decrypt(data[:encrypted_pii])
     Pii::Attributes.new_from_hash(JSON.parse(pii_json, symbolize_names: true))
   end
+
+  # @return [ActiveSupport::TimeWithZone, nil] when the person stepped down for the current
+  #   service provider
+  def idv_resolution_stepdown_time
+    data = user_session[:idv_resolution_stepdown]
+    return if data.blank? || data[:issuer] != current_sp&.issuer
+
+    Time.zone.parse(data[:stepped_down_at].to_s) if data[:stepped_down_at].present?
+  end
 end

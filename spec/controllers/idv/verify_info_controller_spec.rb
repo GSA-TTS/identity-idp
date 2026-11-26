@@ -1309,6 +1309,16 @@ RSpec.describe Idv::VerifyInfoController do
       context 'with an identity resolution stepdown request' do
         before { stub_idv_resolution_stepdown_request }
 
+        it 'records when the person stepped down' do
+          freeze_time do
+            get :show
+
+            expect(controller.user_session[:idv_resolution_stepdown]).to include(
+              stepped_down_at: Time.zone.now.iso8601,
+            )
+          end
+        end
+
         it 'stores encrypted stepdown PII' do
           get :show
 
