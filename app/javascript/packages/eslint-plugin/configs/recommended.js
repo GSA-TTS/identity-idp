@@ -835,7 +835,7 @@ const typescriptRules = {
  * Shared `import` plugin settings. The resolver extensions are extended with `.ts`/`.tsx` when
  * TypeScript support is enabled.
  *
- * @returns {import('eslint').Linter.Config['settings']}
+ * @returns {NonNullable<import('eslint').Linter.Config['settings']>}
  */
 function buildImportSettings() {
   const extensions = ['.js', '.jsx'];
@@ -896,14 +896,17 @@ function buildRecommended() {
     ecmaFeatures: {},
   };
 
+  /** @type {Record<string, boolean | 'readonly' | 'writable' | 'off'>} */
+  const languageGlobals = {
+    ...globals.es2021,
+    ...globals.node,
+  };
+
   /** @type {import('eslint').Linter.Config['languageOptions']} */
   const languageOptions = {
     ecmaVersion: 'latest',
     sourceType: 'module',
-    globals: {
-      ...globals.es2021,
-      ...globals.node,
-    },
+    globals: languageGlobals,
     parserOptions,
   };
 
@@ -914,7 +917,7 @@ function buildRecommended() {
   }
 
   if (hasReact) {
-    parserOptions.ecmaFeatures.jsx = true;
+    parserOptions.ecmaFeatures = { ...parserOptions.ecmaFeatures, jsx: true };
     // eslint-disable-next-line global-require
     plugins.react = require('eslint-plugin-react');
     // eslint-disable-next-line global-require
@@ -934,7 +937,7 @@ function buildRecommended() {
     plugins.mocha = require('eslint-plugin-mocha');
     // Mirrors the legacy `env: { mocha: true }`, injecting the Mocha globals (`describe`, `it`,
     // `context`, `beforeEach`, etc.).
-    Object.assign(languageOptions.globals, globals.mocha);
+    Object.assign(languageGlobals, globals.mocha);
     rules['mocha/no-skipped-tests'] = 'error';
     rules['mocha/no-exclusive-tests'] = 'error';
   }

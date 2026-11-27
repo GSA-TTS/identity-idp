@@ -13,6 +13,10 @@
     ".": {
       "source": "./index.ts",
       "default": "./dist/index.js"
+    },
+    "./*": {
+      "source": "./*.tsx",
+      "default": "./dist/*.js"
     }
   },
   "license": "CC0-1.0",
