@@ -62,6 +62,10 @@ RSpec.describe Proofing::Resolution::ProgressiveProofer do
     allow(proofer.threatmetrix_plugin).to receive(:call).and_return(device_result)
     allow(proofer.phone_plugin).to receive(:call).and_return({})
     proofers.each do |vendor, vendor_proofer|
+      allow(proofer).to receive(:create_proofer).with(
+        vendor,
+        document_type: applicant_pii[:document_type_received],
+      ).and_return(vendor_proofer)
       allow(proofer).to receive(:create_proofer).with(vendor).and_return(vendor_proofer)
     end
     allow(primary_proofer).to receive(:proof).and_return(primary_result)
@@ -291,7 +295,11 @@ RSpec.describe Proofing::Resolution::ProgressiveProofer do
       instant_verify_ddp_state_id_proofer =
         instance_double(Proofing::LexisNexis::Ddp::Proofers::InstantVerifyProofer)
       allow(proofer).to receive(:create_proofer).with(fallback_vendor)
-        .and_return(instant_verify_ddp_residential_proofer, instant_verify_ddp_state_id_proofer)
+        .and_return(instant_verify_ddp_residential_proofer)
+      allow(proofer).to receive(:create_proofer).with(
+        fallback_vendor,
+        document_type: applicant_pii[:document_type_received],
+      ).and_return(instant_verify_ddp_state_id_proofer)
       expect(primary_proofer).to receive(:proof).once.with(applicant_pii).and_return(primary_result)
       expect(instant_verify_ddp_residential_proofer).to receive(:proof).with(applicant_pii)
         .ordered.and_return(fallback_result)
@@ -419,6 +427,10 @@ RSpec.describe Proofing::Resolution::ProgressiveProofer do
       instant_verify_proofer = instance_double(Proofing::LexisNexis::InstantVerify::Proofer)
       allow(proofer).to receive(:create_proofer).with(:instant_verify)
         .and_return(instant_verify_proofer)
+      allow(proofer).to receive(:create_proofer).with(
+        :instant_verify,
+        document_type: applicant_pii[:document_type_received],
+      ).and_return(instant_verify_proofer)
       expect(primary_proofer).to receive(:proof).ordered.and_return(primary_result)
       expect(instant_verify_proofer).to receive(:proof).ordered.and_return(primary_result)
       expect(fallback_proofer).to receive(:proof).ordered.and_return(fallback_result)
@@ -507,6 +519,150 @@ RSpec.describe Proofing::Resolution::ProgressiveProofer do
       it 'does not apply the Instant Verify bypass to Socure' do
         expect(proof.resolution_success?).to eq(false)
         expect(resolution_stage).not_to have_key(:bypassed)
+      end
+    end
+  end
+
+  context 'with mDL bypasses' do
+    let(:applicant_pii) do
+      Idp::Constants::MOCK_IDV_APPLICANT_WITH_PHONE.merge(
+        uuid: user.uuid,
+        document_type_received: 'mobile_drivers_license',
+      )
+    end
+    let(:ddp_result) do
+      Proofing::Resolution::Result.new(
+        success: false,
+        vendor_name: 'lexisnexis:instant_verify_ddp',
+        transaction_id: 'bypassable-tx',
+        errors: {
+          InstantVerify: [{
+            'ProductType' => 'InstantVerify',
+            'ProductStatus' => 'fail',
+            'Items' => [
+              {
+                'ItemName' => 'DriversLicense',
+                'ItemReason' => { 'Code' => 'unable_to_find_dl_fail' },
+                'ItemStatus' => 'fail',
+              },
+              {
+                'ItemName' => 'IdentityOccupancyVerified',
+                'ItemReason' => { 'Code' => 'occupancy_not_verified_fail' },
+                'ItemStatus' => 'fail',
+              },
+            ],
+          }],
+        },
+      )
+    end
+
+    before do
+      allow(IdentityConfig.store).to receive(
+        :idv_lexis_nexis_instant_verify_mdl_bypass_error_codes,
+      ).and_return({
+        'IdentityOccupancyVerified' => ['occupancy_not_verified_fail'],
+        'DriversLicense' => ['unable_to_find_dl_fail'],
+      })
+      allow(proofer).to receive(:create_proofer).with(
+        :instant_verify_ddp, document_type: 'mobile_drivers_license'
+      ).and_call_original
+      allow(Proofing::LexisNexis::Ddp::Proofers::InstantVerifyProofer).to receive(:new).and_return(
+        instant_verify_ddp_proofer,
+      )
+      allow(instant_verify_ddp_proofer).to receive(:proof).and_return(ddp_result)
+    end
+
+    context 'when the bypassable Instant Verify DDP result is the primary attempt' do
+      let(:primary_vendor) { :instant_verify_ddp }
+      let(:fallback_vendor) { :socure_kyc }
+
+      it 'treats the attempt as passing and does not fail over' do
+        expect(fallback_proofer).not_to receive(:proof)
+        expect(proof.resolution_success?).to eq(true)
+        expect(proof.proofing_vendor).to eq(:instant_verify_ddp)
+        expect(proof.adjudicated_result.extra[:context][:resolution_adjudication_reason])
+          .to eq(:pass_resolution_and_state_id)
+        expect(resolution_stage).to include(
+          success: true,
+          transaction_id: 'bypassable-tx',
+          attempted_vendors: [:instant_verify_ddp],
+          failover_available: true,
+          failover_used: false,
+          bypassed_reason_codes: [
+            {
+              name: 'id_resolution_check_bypassed',
+              reason: 'mdl',
+              bypassed_checks: [
+                { DriversLicense: 'unable_to_find_dl_fail' },
+                { IdentityOccupancyVerified: 'occupancy_not_verified_fail' },
+              ],
+            },
+          ],
+        )
+      end
+    end
+
+    context 'when the mdl Instant Verify DDP bypasses fail' do
+      let(:ddp_result) do
+        Proofing::Resolution::Result.new(
+          success: false,
+          vendor_name: 'lexisnexis:instant_verify_ddp',
+          transaction_id: 'bypassable-tx',
+          errors: {
+            InstantVerify: [{
+              'ProductType' => 'InstantVerify',
+              'ProductStatus' => 'fail',
+              'Items' => [
+                {
+                  'ItemName' => 'DriversLicense',
+                  'ItemReason' => { 'Code' => 'unable_to_find_dl_fail' },
+                  'ItemStatus' => 'fail',
+                },
+                {
+                  'ItemName' => 'IdentityOccupancyVerified',
+                  'ItemReason' => { 'Code' => 'occupancy_not_verified_fail' },
+                  'ItemStatus' => 'fail',
+                },
+                {
+                  'ItemName' => 'AdditionalError',
+                  'ItemReason' => { 'Code' => 'I_AM_ERROR' },
+                  'ItemStatus' => 'fail',
+                },
+              ],
+            }],
+          },
+        )
+      end
+      let(:primary_vendor) { :instant_verify_ddp }
+      let(:fallback_vendor) { :socure_kyc }
+
+      it 'uses the fallback vendor' do
+        expect(resolution_stage).to include(
+          attempted_vendors: [:instant_verify_ddp, :socure_kyc],
+          failover_used: true,
+        )
+        expect(resolution_stage).not_to have_key(:bypassed_reason_codes)
+      end
+    end
+
+    context 'when the bypassable Instant Verify DDP result is the fallback attempt' do
+      it 'applies the bypass to the fallback attempt' do
+        expect(proof.resolution_success?).to eq(true)
+        expect(proof.proofing_vendor).to eq(:instant_verify_ddp)
+        expect(resolution_stage).to include(
+          attempted_vendors: [:socure_kyc, :instant_verify_ddp],
+          failover_used: true,
+        )
+        expect(resolution_stage).to have_key(:bypassed_reason_codes)
+      end
+    end
+
+    context 'when the failed Socure result is the primary attempt and failover is off' do
+      let(:percent) { 0 }
+
+      it 'does not apply the Instant Verify bypass to Socure' do
+        expect(proof.resolution_success?).to eq(false)
+        expect(resolution_stage).not_to have_key(:bypassed_reason_codes)
       end
     end
   end
