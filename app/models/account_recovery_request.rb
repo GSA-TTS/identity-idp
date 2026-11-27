@@ -32,13 +32,17 @@ class AccountRecoveryRequest < ApplicationRecord
   CANCEL_REASON_INELIGIBLE = 'ineligible'
   FAILURE_REASON_TOKEN_NOT_REDEEMED = 'token_not_redeemed'
 
+  # Password verification suspends the user's existing MFA configurations under
+  # the request, and only completion removes them. A request past that point
+  # cannot be cancelled or expired, so a terminal request never leaves
+  # configurations suspended.
   TRANSITIONS = {
     REQUESTED => [WAITING, CANCELLED, EXPIRED],
     WAITING => [GRANTED, CANCELLED, EXPIRED],
     GRANTED => [LINK_VERIFIED, CANCELLED, EXPIRED],
     LINK_VERIFIED => [PASSWORD_VERIFIED, CANCELLED, EXPIRED],
-    PASSWORD_VERIFIED => [REPLACEMENT_MFA_PENDING, CANCELLED, EXPIRED],
-    REPLACEMENT_MFA_PENDING => [COMPLETED, CANCELLED, EXPIRED],
+    PASSWORD_VERIFIED => [REPLACEMENT_MFA_PENDING],
+    REPLACEMENT_MFA_PENDING => [COMPLETED],
   }.freeze
 
   STATE_TIMESTAMPS = {
@@ -72,14 +76,12 @@ class AccountRecoveryRequest < ApplicationRecord
     active.find_by(token_fingerprint: fingerprint)
   end
 
-  # The request a user may continue after redeeming their recovery link and
-  # confirming their password.
-  def self.password_verified_for_user(user)
-    active.find_by(user: user, state: PASSWORD_VERIFIED)
-  end
-
   def active?
     ACTIVE_STATES.include?(state)
+  end
+
+  def replacement_mfa_pending?
+    active? && state == REPLACEMENT_MFA_PENDING
   end
 
   def terminal?

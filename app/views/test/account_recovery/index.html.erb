@@ -63,7 +63,7 @@
                     class: 'usa-button usa-button--unstyled',
                   ) %>
             <% end %>
-            <% if recovery_request.active? %>
+            <% if recovery_request.can_transition_to?(AccountRecoveryRequest::CANCELLED) %>
               <%= button_to(
                     'Cancel',
                     test_account_recovery_cancel_path(id: recovery_request.id),

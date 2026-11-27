@@ -23,6 +23,15 @@ RSpec.describe AccountRecoveryRequest do
         expect(request.active?).to eq(false), "expected #{state} not to be active"
       end
     end
+
+    it 'reports only the replacement_mfa_pending state as awaiting replacement MFA' do
+      AccountRecoveryRequest::STATES.each do |state|
+        request = build(:account_recovery_request, state: state)
+
+        expect(request.replacement_mfa_pending?)
+          .to eq(state == AccountRecoveryRequest::REPLACEMENT_MFA_PENDING), state
+      end
+    end
   end
 
   describe '.active_for_user' do
@@ -86,6 +95,24 @@ RSpec.describe AccountRecoveryRequest do
         end
 
         expect(request.reload.state).to eq(terminal_state)
+      end
+    end
+
+    # Password verification suspends the user's existing MFA under the request,
+    # so ending it any way other than completion would strand those methods.
+    it 'refuses to cancel or expire a request once the password is verified' do
+      %i[password_verified replacement_mfa_pending].each do |trait|
+        request = create(:account_recovery_request, trait, user: create(:user))
+        state = request.state
+
+        expect(request.cancel!(reason: AccountRecoveryRequest::CANCEL_REASON_USER_CANCELLED))
+          .to eq(false), state
+        expect(request.expire!).to eq(false), state
+
+        request.reload
+        expect(request.state).to eq(state)
+        expect(request.cancelled_at).to be_nil
+        expect(request.expired_at).to be_nil
       end
     end
 
@@ -232,28 +259,6 @@ RSpec.describe AccountRecoveryRequest do
 
       expect(described_class.active_for_token_fingerprint(nil)).to be_nil
       expect(described_class.active_for_token_fingerprint('')).to be_nil
-    end
-  end
-
-  describe '.password_verified_for_user' do
-    it 'returns the user’s password-verified request' do
-      request = create(:account_recovery_request, :password_verified, user: user)
-
-      expect(described_class.password_verified_for_user(user)).to eq(request)
-    end
-
-    it 'ignores requests in other states' do
-      (AccountRecoveryRequest::STATES - [AccountRecoveryRequest::PASSWORD_VERIFIED]).each do |state|
-        request = create(:account_recovery_request, user: create(:user), state: state)
-
-        expect(described_class.password_verified_for_user(request.user)).to be_nil, state
-      end
-    end
-
-    it 'ignores requests belonging to other users' do
-      create(:account_recovery_request, :password_verified)
-
-      expect(described_class.password_verified_for_user(user)).to be_nil
     end
   end
 
