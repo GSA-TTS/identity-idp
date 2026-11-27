@@ -31,7 +31,8 @@ module Proofing
               transaction_id: parsed_response.conversation_id,
               dual_vendor_check_eligible: dual_vendor_check_eligible?(parsed_response),
               result: phone_metadata(response_body),
-            )
+              vendor_verified: review_status == 'pass' # refactor w/ below
+            ),
           end
 
           def validate_review_status!(review_status)
@@ -46,6 +47,7 @@ module Proofing
               errors: {},
               exception: exception,
               vendor_name: 'lexisnexis:phone_finder_ddp',
+              vendor_verified: false,
             )
           end
 

@@ -49,14 +49,19 @@ module Idv
       if idv_result[:success]
         handle_successful_proofing_attempt(
           vendor: Idv::PhoneVendor.address_verification_vendor(idv_result[:vendor_name]),
+          phone_verified: idv_result[:vendor_verified],
         )
       else
         handle_failed_proofing_attempt
         if phone_confirmation_manually_reviewed?
-          handle_successful_proofing_attempt(vendor: 'manual_review')
+          handle_successful_proofing_attempt(
+            vendor: 'manual_review',
+            phone_verified: false,
+          )
         elsif @superior_evidence_ignore_phone_verification
           handle_successful_proofing_attempt(
             vendor: Idp::Constants::Vendors::PHONE_CHECK_SUPERIOR_EVIDENCE_SKIPPED,
+            phone_verified: false,
           )
         end
       end
@@ -97,8 +102,11 @@ module Idv
       run_job(document_capture_session)
     end
 
-    def handle_successful_proofing_attempt(vendor:)
-      update_idv_session(vendor)
+    def handle_successful_proofing_attempt(vendor:, phone_verified:)
+      idv_session.applicant = applicant
+      idv_session.applicant[:phone_verified] = phone_verified
+      idv_session.address_verification_vendor = vendor
+      idv_session.mark_phone_step_started!
       start_phone_confirmation_session
     end
 
@@ -154,12 +162,6 @@ module Idv
 
     def failed_due_to_timeout_or_exception?
       idv_result[:timed_out] || idv_result[:exception]
-    end
-
-    def update_idv_session(vendor)
-      idv_session.applicant = applicant
-      idv_session.address_verification_vendor = vendor
-      idv_session.mark_phone_step_started!
     end
 
     def start_phone_confirmation_session

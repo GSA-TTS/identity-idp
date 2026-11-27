@@ -19,6 +19,7 @@ module Proofing
               vendor_name: VENDOR_NAME,
               reference:,
               transaction_id: reference,
+              vendor_verified: false,
             )
           end
 
@@ -33,6 +34,7 @@ module Proofing
               transaction_id: reference,
               result: response.to_h,
               dual_vendor_check_eligible: response.dual_vendor_check_eligible?,
+              vendor_verified: response.phone_verified?,
             )
           end
 

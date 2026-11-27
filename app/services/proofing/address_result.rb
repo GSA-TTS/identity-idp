@@ -10,11 +10,13 @@ module Proofing
                 :reference,
                 :vendor_workflow,
                 :result,
-                :dual_vendor_check_eligible
+                :dual_vendor_check_eligible,
+                :vendor_verified
 
     def initialize(
       success:,
       vendor_name:,
+      vendor_verified:,
       exception: nil,
       errors: {},
       transaction_id: '',
@@ -32,6 +34,7 @@ module Proofing
       @vendor_workflow = vendor_workflow
       @result = result
       @dual_vendor_check_eligible = dual_vendor_check_eligible
+      @vendor_verified = vendor_verified
     end
 
     def success?
@@ -52,6 +55,7 @@ module Proofing
         reference:,
         vendor_name:,
         result:,
+        vendor_verified:,
       }
     end
   end

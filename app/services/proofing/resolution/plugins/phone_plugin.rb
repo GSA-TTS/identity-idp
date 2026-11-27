@@ -51,13 +51,19 @@ module Proofing
 
         def resolution_cannot_pass_result
           Proofing::AddressResult.new(
-            success: false, vendor_name: 'ResolutionCannotPass', exception: nil,
+            success: false,
+            vendor_name: 'ResolutionCannotPass',
+            exception: nil,
+            vendor_verified: false,
           ).to_h
         end
 
         def no_phone_available_result
           Proofing::AddressResult.new(
-            success: false, vendor_name: 'NoPhoneNumberAvailable', exception: nil,
+            success: false,
+            vendor_name: 'NoPhoneNumberAvailable',
+            exception: nil,
+            vendor_verified: false,
           ).to_h
         end
 

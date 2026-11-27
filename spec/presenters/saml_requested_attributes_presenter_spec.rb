@@ -56,11 +56,13 @@ RSpec.describe SamlRequestedAttributesPresenter do
     end
 
     context 'IALMax requested with ACR values' do
-      let(:authn_request_attribute_bundle) { %w[email first_name dob fake_extra_attribute] }
+      let(:authn_request_attribute_bundle) do
+        %w[email first_name dob phone_verified fake_extra_attribute]
+      end
       let(:ial) { Saml::Idp::Constants::IALMAX_AUTHN_CONTEXT_CLASSREF }
 
       it 'returns requested proofing attributes' do
-        expect(subject.requested_attributes).to eq(%i[email given_name birthdate])
+        expect(subject.requested_attributes).to eq(%i[email given_name birthdate phone_verified])
       end
 
       context 'no attributes are requested' do
@@ -91,10 +93,12 @@ RSpec.describe SamlRequestedAttributesPresenter do
 
       context 'no attributes are requested' do
         let(:authn_request_attribute_bundle) { nil }
-        let(:service_provider_attribute_bundle) { %w[email first_name ssn verified_at] }
+        let(:service_provider_attribute_bundle) do
+          %w[email first_name ssn verified_at phone_verified]
+        end
 
         it 'returns filtered default attributes' do
-          expect(subject.requested_attributes).to eq(%i[email verified_at])
+          expect(subject.requested_attributes).to eq(%i[email verified_at phone_verified])
         end
       end
     end

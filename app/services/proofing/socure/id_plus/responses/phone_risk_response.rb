@@ -26,6 +26,7 @@ module Proofing
               name_correlation_successful: name_correlation_successful?,
               phonerisk_successful: phonerisk_successful?,
               autofail_reason_codes: matched_autofail_reason_codes,
+              phone_verified: successful?,
             }
           end
 
@@ -36,6 +37,10 @@ module Proofing
           def dual_vendor_check_eligible?
             has_name_verification_error_reason_codes? &&
               !has_additional_verification_error_reason_codes?
+          end
+
+          def phone_verified?
+            true # todo: implement phone verification logic based on response data
           end
 
           private

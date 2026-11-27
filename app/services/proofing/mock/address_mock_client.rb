@@ -54,6 +54,7 @@ module Proofing
           exception: exception,
           transaction_id: TRANSACTION_ID,
           vendor_name: 'AddressMock',
+          vendor_verified: success,
         )
       end
     end

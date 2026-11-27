@@ -92,6 +92,7 @@ RSpec.describe Idv::PhoneStep do
       expect(idv_session.applicant).to eq(
         original_applicant.merge(
           phone: good_phone,
+          phone_verified: true,
           uuid_prefix: service_provider.app_id,
         ),
       )
@@ -100,6 +101,7 @@ RSpec.describe Idv::PhoneStep do
     context 'when vendor is socure_phonerisk' do
       let(:vendor_name) { 'socure_phonerisk' }
       let(:vendor_transaction_id) { 'socure-transaction-id-456' }
+      let(:vendor_verified) { true }
 
       let(:address_result) do
         Proofing::AddressResult.new(
@@ -110,6 +112,7 @@ RSpec.describe Idv::PhoneStep do
           transaction_id: vendor_transaction_id,
           reference: '',
           result: nil,
+          vendor_verified:,
         ).to_h
       end
 
@@ -225,6 +228,8 @@ RSpec.describe Idv::PhoneStep do
               vendor: mock_vendor,
             }
 
+            original_applicant = idv_session.applicant.dup
+
             subject.submit(phone: bad_phone)
             expect(subject.async_state).to be_done
             result = subject.async_state_done(subject.async_state)
@@ -234,6 +239,13 @@ RSpec.describe Idv::PhoneStep do
             expect(result.success?).to eq(false)
             expect(result.extra).to eq(extra)
             expect(idv_session.address_verification_vendor).to eq('manual_review')
+            expect(idv_session.applicant).to eq(
+              original_applicant.merge(
+                phone: bad_phone,
+                phone_verified: false,
+                uuid_prefix: service_provider.app_id,
+              ),
+            )
           end
         end
       end
@@ -259,6 +271,8 @@ RSpec.describe Idv::PhoneStep do
             vendor: mock_vendor,
           }
 
+          original_applicant = idv_session.applicant.dup
+
           subject.submit(phone: bad_phone)
           expect(subject.async_state).to be_done
           result = subject.async_state_done(subject.async_state)
@@ -269,6 +283,13 @@ RSpec.describe Idv::PhoneStep do
           expect(result.extra).to eq(extra)
           expect(idv_session.address_verification_vendor).to eq(
             Idp::Constants::Vendors::PHONE_CHECK_SUPERIOR_EVIDENCE_SKIPPED,
+          )
+          expect(idv_session.applicant).to eq(
+            original_applicant.merge(
+              phone: bad_phone,
+              phone_verified: false,
+              uuid_prefix: service_provider.app_id,
+            ),
           )
         end
       end
