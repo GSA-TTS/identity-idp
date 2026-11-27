@@ -646,7 +646,7 @@ RSpec.describe OpenidConnectUserInfoPresenter do
         let(:pii) { nil }
         let(:profile) { nil }
         let(:scope) { 'openid document_images profile social_security_number' }
-        let(:acr_values) { Saml::Idp::Constants::IAL_AUTH_ONLY_ACR }
+        let(:acr_values) { Saml::Idp::Constants::IAL_VERIFIED_FACIAL_MATCH_REQUIRED_ACR }
         let(:document_capture_session) do
           create(:document_capture_session, user: identity.user, issuer: service_provider.issuer)
         end

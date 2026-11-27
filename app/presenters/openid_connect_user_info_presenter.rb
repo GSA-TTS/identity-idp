@@ -27,7 +27,7 @@ class OpenidConnectUserInfoPresenter
     end
 
     if scoper.document_images_requested? && proofing_data.document_images_shareable? &&
-       !resolved_authn_context_result.ialmax?
+       resolved_authn_context_result.identity_proofing?
       info[:document_images] = document_images
       info[:document_metadata] = proofing_data.document_metadata
     end
