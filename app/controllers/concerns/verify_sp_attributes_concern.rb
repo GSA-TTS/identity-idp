@@ -142,12 +142,20 @@ module VerifySpAttributesConcern
 
   def requested_attributes_verified?(sp_session_identity)
     return false unless sp_session_identity
+    return stepped_down_attributes_consented?(sp_session_identity) if request_has_stepped_down?
 
-    unverified_attributes =
-      Array(sp_session[:requested_attributes]) - sp_session_identity.verified_attributes.to_a
+    (Array(sp_session[:requested_attributes]) - sp_session_identity.verified_attributes.to_a).empty?
+  end
 
-    unverified_attributes.delete('verified_at') if request_has_stepped_down?
+  # After an identity resolution step-down the identity records only the authentication-level
+  # attributes as verified (see #verified_attributes), so the identity attributes the service
+  # provider asked for can never appear there. They are approved instead by a consent given since
+  # the step-down: the completion screen shows them once, and the next authorization request
+  # continues to the service provider.
+  def stepped_down_attributes_consented?(sp_session_identity)
+    stepped_down_at = idv_resolution_stepdown_time
+    consented_at = sp_session_identity.last_consented_at
 
-    unverified_attributes.empty?
+    stepped_down_at.present? && consented_at.present? && consented_at >= stepped_down_at
   end
 end

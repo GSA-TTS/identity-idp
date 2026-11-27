@@ -274,9 +274,11 @@ RSpec.describe OpenidConnect::AuthorizationController do
 
               context 'with stored stepdown data for the issuer' do
                 before do
+                  # The consent screen records only the authentication-level attributes for a
+                  # stepped-down identity; the consent time, after the step-down, approves the rest.
                   IdentityLinker.new(user, service_provider).link_identity(ial: 1)
                   user.identities.last.update!(
-                    verified_attributes: %w[given_name family_name birthdate],
+                    verified_attributes: %w[email],
                     last_consented_at: Time.zone.now,
                   )
                   controller.user_session[:idv_resolution_stepdown] = {
@@ -284,6 +286,7 @@ RSpec.describe OpenidConnect::AuthorizationController do
                     encrypted_pii: SessionEncryptor.new.kms_encrypt(
                       { first_name: 'Jane' }.to_json,
                     ),
+                    stepped_down_at: 1.minute.ago.iso8601,
                   }
                 end
 
