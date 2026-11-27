@@ -81,6 +81,30 @@ RSpec.describe ServiceProvider do
     end
   end
 
+  describe '#idv_resolution_stepdown_allowed?' do
+    context 'when the issuer is allowlisted' do
+      before do
+        allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
+          .and_return([service_provider.issuer])
+      end
+
+      it 'is true' do
+        expect(service_provider.idv_resolution_stepdown_allowed?).to be(true)
+      end
+    end
+
+    context 'when the issuer is not allowlisted' do
+      before do
+        allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
+          .and_return([])
+      end
+
+      it 'is false' do
+        expect(service_provider.idv_resolution_stepdown_allowed?).to be(false)
+      end
+    end
+  end
+
   describe '#document_images_sharing_allowed?' do
     context 'when sharing is enabled and the issuer is allow-listed' do
       before do

@@ -113,6 +113,10 @@ class ServiceProvider < ApplicationRecord
     IdentityConfig.store.allowed_create_prompt_providers.include?(issuer)
   end
 
+  def idv_resolution_stepdown_allowed?
+    IdentityConfig.store.idv_resolution_stepdown_allowed_issuer.include?(issuer)
+  end
+
   def logo_url
     LogoUrl.new(logo, remote_logo_key).url
   end
