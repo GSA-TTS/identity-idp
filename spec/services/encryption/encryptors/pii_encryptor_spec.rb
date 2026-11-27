@@ -114,5 +114,13 @@ RSpec.describe Encryption::Encryptors::PiiEncryptor do
 
       expect(result).to eq(plaintext)
     end
+
+    it 'rejects ciphertext encrypted under a different kms_context' do
+      other = described_class.new(password, kms_context: 'site-key-encryption')
+      ciphertext = other.encrypt(plaintext, user_uuid: 'uuid-123-abc')
+
+      expect { subject.decrypt(ciphertext, user_uuid: 'uuid-123-abc') }
+        .to raise_error(Encryption::EncryptionError)
+    end
   end
 end
