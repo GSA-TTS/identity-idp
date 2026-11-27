@@ -45,6 +45,78 @@ module Test
         ],
       ),
       Page.new(
+        key: 'piv-cac-error',
+        title: 'PIV/CAC sign in error',
+        flow: SIGN_IN,
+        template: 'users/piv_cac_login/error',
+        permutations: [
+          Permutation.new(label: 'Did not work (default)', params: {}),
+          Permutation.new(label: 'Not connected', params: { error: 'user.not_found' }),
+          Permutation.new(label: 'Certificate expired', params: { error: 'certificate.expired' }),
+          Permutation.new(label: 'No certificate', params: { error: 'certificate.none' }),
+          Permutation.new(
+            label: 'Not an authentication certificate',
+            params: { error: 'certificate.not_auth_cert' },
+          ),
+          Permutation.new(label: 'Server timeout', params: { error: 'token.http_failure' }),
+        ],
+      ),
+      Page.new(
+        key: 'piv-cac-mismatch',
+        title: 'PIV/CAC not connected to this account',
+        flow: SIGN_IN,
+        template: 'two_factor_authentication/piv_cac_mismatch/show',
+        permutations: [
+          Permutation.new(label: 'Other methods (default)', params: {}),
+          Permutation.new(label: 'PIV/CAC required (no skip)', params: { piv_cac_required: '1' }),
+          Permutation.new(label: 'No other method', params: { no_other_method: '1' }),
+          Permutation.new(
+            label: 'No other method, recovery available',
+            params: { no_other_method: '1', recovery: '1' },
+          ),
+          Permutation.new(
+            label: 'No other method, recovery pending',
+            params: { no_other_method: '1', recovery_pending: '1' },
+          ),
+        ],
+      ),
+      Page.new(
+        key: 'password-reset-email',
+        title: 'Reset password (enter email)',
+        flow: SIGN_IN,
+        template: 'devise/passwords/new',
+        permutations: [
+          Permutation.new(label: 'Default', params: {}),
+          Permutation.new(label: 'SP alert', params: { sp_alert: '1' }),
+          Permutation.new(label: 'Email error', params: { error: 'email' }),
+          Permutation.new(label: 'Invalid reset link', params: { error: 'invalid_token' }),
+          Permutation.new(label: 'Expired reset link', params: { error: 'token_expired' }),
+        ],
+      ),
+      Page.new(
+        key: 'password-reset-sent',
+        title: 'Reset password (check your email)',
+        flow: SIGN_IN,
+        template: 'forgot_password/show',
+        permutations: [
+          Permutation.new(label: 'Default', params: {}),
+          Permutation.new(label: 'Email resent', params: { resend: '1' }),
+        ],
+      ),
+      Page.new(
+        key: 'password-reset-new-password',
+        title: 'Reset password (enter a new password)',
+        flow: SIGN_IN,
+        template: 'devise/passwords/edit',
+        permutations: [
+          Permutation.new(label: 'Default', params: {}),
+          Permutation.new(label: 'Password too short', params: { error: 'too_short' }),
+          Permutation.new(label: 'Weak password', params: { error: 'weak' }),
+          Permutation.new(label: 'Breached password', params: { error: 'pwned' }),
+          Permutation.new(label: 'Passwords do not match', params: { error: 'mismatch' }),
+        ],
+      ),
+      Page.new(
         key: 'create-account',
         title: 'Create account (enter email)',
         flow: CREATE_ACCOUNT,
@@ -74,6 +146,15 @@ module Test
           Permutation.new(label: 'Default', params: {}),
           Permutation.new(label: 'Confirmation toast', params: { toast: '1' }),
           Permutation.new(label: 'Password error', params: { error: '1' }),
+        ],
+      ),
+      Page.new(
+        key: 'sign-up-cancel',
+        title: 'Cancel account creation',
+        flow: CREATE_ACCOUNT,
+        template: 'sign_up/cancellations/new',
+        permutations: [
+          Permutation.new(label: 'Default', params: {}),
         ],
       ),
       Page.new(
@@ -334,6 +415,25 @@ module Test
         title: 'Sign-in security check failed',
         flow: ERRORS,
         template: 'sign_in_security_check_failed/show',
+        permutations: [
+          Permutation.new(label: 'Default', params: {}),
+        ],
+      ),
+      Page.new(
+        key: 'sp-handoff-bounced',
+        title: 'Service provider sent the user back (bounced)',
+        flow: ERRORS,
+        template: 'devise/sessions/bounced',
+        permutations: [
+          Permutation.new(label: 'No service provider', params: {}),
+          Permutation.new(label: 'Named service provider', params: { sp: '1' }),
+        ],
+      ),
+      Page.new(
+        key: 'oidc-authorization-error',
+        title: 'OpenID Connect authorization error',
+        flow: ERRORS,
+        template: 'openid_connect/authorization/error',
         permutations: [
           Permutation.new(label: 'Default', params: {}),
         ],
@@ -721,6 +821,17 @@ module Test
         ],
       ),
       Page.new(
+        key: 'select-email',
+        title: 'Select email to share',
+        flow: IDV,
+        template: 'sign_up/select_email/show',
+        permutations: [
+          Permutation.new(label: 'Default', params: {}),
+          Permutation.new(label: 'Email limit reached', params: { max: '1' }),
+          Permutation.new(label: 'No email selected', params: { error: '1' }),
+        ],
+      ),
+      Page.new(
         key: 'email-language',
         title: 'Email language preference',
         flow: ACCOUNT,
@@ -739,6 +850,19 @@ module Test
           Permutation.new(label: 'Unverified', params: {}),
           Permutation.new(label: 'Verified identity', params: { verified: '1' }),
           Permutation.new(label: 'Incorrect password', params: { error: '1' }),
+        ],
+      ),
+      # NOTE: scaffold-only — the nds_layout? branch on this template currently
+      # renders byte-identical legacy markup (no NDS:: components yet), so this
+      # page will look the same in both buckets in the explorer until the real
+      # NDS redesign lands.
+      Page.new(
+        key: 'sts-consent',
+        title: 'STS consent (MyTravelGov delegation)',
+        flow: ACCOUNT,
+        template: 'users/sts_consent/new',
+        permutations: [
+          Permutation.new(label: 'Default', params: {}),
         ],
       ),
     ].freeze

@@ -108,6 +108,29 @@ RSpec.describe BillableEventTrackable do
             .to eq(active_profile.initiating_service_provider)
         end
       end
+
+      context 'without an active profile' do
+        let(:current_user) { create(:user) }
+        let(:active_profile) { nil }
+
+        it 'logs an IAL1 return' do
+          expect { instance.track_billing_events }.to(change { SpReturnLog.count }.by(1))
+
+          expect(SpReturnLog.last.ial).to eq(1)
+        end
+
+        it 'does not log profile attributes' do
+          instance.track_billing_events
+
+          sp_return_log = SpReturnLog.last
+          aggregate_failures do
+            expect(sp_return_log.profile_id).to be_nil
+            expect(sp_return_log.profile_verified_at).to be_nil
+            expect(sp_return_log.profile_requested_issuer).to be_nil
+            expect(sp_return_log.profile_requested_service_provider).to be_nil
+          end
+        end
+      end
     end
 
     context 'for a token-exchange actor' do

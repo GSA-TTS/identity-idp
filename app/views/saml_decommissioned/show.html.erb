@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>Decommissioned Access (404)</title>
+    <title>Access Unavailable (404)</title>
     <link rel="stylesheet" media="screen" href="/css/static.css"/>
 </head>
 <body>
@@ -15,14 +15,14 @@
                 </div>
             </div>
             <div class="inner cover">
-                <h1>Decommissioned Access</h1>
-                <p>This sign in page for <%= @friendly_name %> has been decommissioned. (404)</p>
+                <h1>Access Unavailable</h1>
+                <p>This sign-in page for <%= @friendly_name %> is no longer available. (404)</p>
                 <% if @return_to_sp_url.present? %>
                     <p>Please visit <%= link_to @friendly_name, @return_to_sp_url, target: '_blank', rel: 'noopener noreferrer' %> and navigate to the button to sign in with Login.gov. If this resolves the issue, ensure that you update your bookmarks.</p>
                 <% else %>
                     <p>Please return to your service provider&rsquo;s homepage and navigate to the button to sign in with Login.gov. If this resolves the issue, ensure that you update your bookmarks.</p>
                 <% end %>
-                <p>If the issue persists, please contact <%= @friendly_name %> and share this error page. The issue will not be resolved until they update their configuration with us.</p>
+                <p>If you continue to see this message, please contact <%= @friendly_name %> for assistance and share this error message with them.</p>
             </div>
         </div>
     </div>

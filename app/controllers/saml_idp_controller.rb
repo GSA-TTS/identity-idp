@@ -243,6 +243,7 @@ class SamlIdpController < ApplicationController
       billed_ial: ial_context.bill_for_ial_1_or_2,
       sign_in_flow: session[:sign_in_flow],
       acr_values: sp_session[:acr_values],
+      asserted_ial_acr:,
       sign_in_duration_seconds:,
     )
 
@@ -256,6 +257,14 @@ class SamlIdpController < ApplicationController
       service_provider: saml_request_service_provider,
       user: current_user,
     )
+  end
+
+  def asserted_ial_acr
+    @asserted_ial_acr ||= AuthnContextResolver.new(
+      user: current_user,
+      service_provider: saml_request_service_provider,
+      acr_values: sp_session[:acr_values],
+    ).asserted_ial_acr
   end
 
   def resolved_authn_context_int_ial

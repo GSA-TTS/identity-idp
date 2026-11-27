@@ -2553,6 +2553,10 @@ module AnalyticsEvents
   # @option proofing_results [String,nil] context.stages.resolution.vendor_id Vendor's internal ID for resolution proofing requests, e.g. socureId
   # @option proofing_results [String] context.stages.resolution.vendor_name Vendor used (e.g. lexisnexis:instant_verify)
   # @option proofing_results [String] context.stages.resolution.vendor_workflow ID of workflow or configuration the vendor used for this transaction
+  # @option proofing_results [Hash] context.stages.resolution.attempts Every resolution vendor call for this stage, including the final call also shown at the top level of the stage. Keyed by internal proofing vendor identifier (e.g. socure_kyc, instant_verify_ddp), which differs from the vendor-reported vendor_name inside each entry. Each entry has the same shape as the stage itself. Each vendor appears at most once. Order is given by attempted_vendors, since object keys are unordered. Empty for in-person proofing with matching addresses, where the residential address call also covers the state ID address.
+  # @option proofing_results [Array<String>] context.stages.resolution.attempted_vendors Internal proofing vendor identifiers called for this stage, in the order they were called. Values are the keys of attempts.
+  # @option proofing_results [Boolean] context.stages.resolution.failover_available Whether failover could have run for this submission. True only when the submission was selected by the idv_resolution_failover_enabled_percent rollout and at least one other eligible vendor existed.
+  # @option proofing_results [Boolean] context.stages.resolution.failover_used Whether more than one vendor was called for this stage.
   # @option proofing_results [Boolean] context.stages.residential_address.success Whether the residential address passed proofing
   # @option proofing_results [Hash] context.stages.residential_address.errors Object holding error details returned by the residential address proofing vendor.
   # @option proofing_results [String,nil] context.stages.residential_address.exception If an exception occured during residential address verification its message is provided here
@@ -2564,6 +2568,10 @@ module AnalyticsEvents
   # @option proofing_results [String,nil] context.stages.residential_address.vendor_id Vendor's internal ID for residential address proofing requests, e.g. socureId
   # @option proofing_results [String] context.stages.residential_address.vendor_name Vendor used for residential address proofing
   # @option proofing_results [String] context.stages.residential_address.vendor_workflow Vendor-specific workflow or configuration ID associated with the request made.
+  # @option proofing_results [Hash] context.stages.residential_address.attempts Every residential address vendor call for this stage, structured the same as context.stages.resolution.attempts. Empty outside in-person proofing, where no residential address call is made.
+  # @option proofing_results [Array<String>] context.stages.residential_address.attempted_vendors Internal proofing vendor identifiers called for this stage, in the order they were called. Values are the keys of attempts.
+  # @option proofing_results [Boolean] context.stages.residential_address.failover_available Same value as context.stages.resolution.failover_available.
+  # @option proofing_results [Boolean] context.stages.residential_address.failover_used Whether more than one vendor was called for this stage.
   # @option proofing_results [Hash] context.stages.threatmetrix Object holding details about the call made to the device profiling vendor
   # @option proofing_results [String] context.stages.threatmetrix.client Identifier string indicating which client was used.
   # @option proofing_results [Boolean] context.stages.threatmetrix.success Whether the request to the vendor succeeded.
@@ -6555,6 +6563,8 @@ module AnalyticsEvents
   # @param [Hash] customer_profile socure customer profile
   # @param [String] customer_user_id user uuid sent to Socure
   # @param [Hash] decision accept or reject of given ID
+  # @param [Hash, nil] digital_intelligence Socure device, network, and behavioral data
+  # @param [Array<Hash>, nil] digital_intelligence_errors Socure Digital Intelligence errors
   # @param [Boolean] doc_auth_success
   # @param [Boolean] doc_type_supported
   # @param [Hash] document_metadata Data about the document that was submitted
@@ -6598,6 +6608,8 @@ module AnalyticsEvents
     customer_profile: nil,
     customer_user_id: nil,
     decision: nil,
+    digital_intelligence: nil,
+    digital_intelligence_errors: nil,
     document_metadata: nil,
     docv_transaction_token: nil,
     expiration_date: nil,
@@ -6628,6 +6640,8 @@ module AnalyticsEvents
       customer_profile:,
       customer_user_id:,
       decision:,
+      digital_intelligence:,
+      digital_intelligence_errors:,
       doc_auth_success:,
       doc_type_supported:,
       document_metadata:,
@@ -9110,7 +9124,8 @@ module AnalyticsEvents
   # @param [Integer] billed_ial
   # @param [String, nil] sign_in_flow
   # @param [String, nil] vtr
-  # @param [String, nil] acr_values
+  # @param [String, nil] acr_values requested acr values
+  # @param [String, nil] asserted_ial_acr the actual asserted acr value
   # @param [Integer] sign_in_duration_seconds
   # TODO: For ease of validating attempt bundle information, can we pass the profile id
   # in those events as well as this one?
@@ -9118,6 +9133,7 @@ module AnalyticsEvents
     ial:,
     billed_ial:,
     sign_in_flow:,
+    asserted_ial_acr:,
     acr_values:,
     sign_in_duration_seconds:,
     vtr: nil,
@@ -9130,6 +9146,7 @@ module AnalyticsEvents
       sign_in_flow:,
       vtr:,
       acr_values:,
+      asserted_ial_acr:,
       sign_in_duration_seconds:,
       **extra,
     )
@@ -9387,6 +9404,7 @@ module AnalyticsEvents
   # User registration has been handed off to agency page
   # @param [Boolean] ial2 Whether the user registration was for a verified identity
   # @param [Integer] ialmax Whether the user registration was for an IALMax request
+  # @param [Integer] idv_resolution_stepdown Whether the request stepped down from IAL2 to auth-only
   # @param [String] service_provider_name The friendly name of the service provider
   # @param ['account-page','agency-page'] page_occurence Where the user concluded registration
   # @param [String] needs_completion_screen_reason The reason for the consent screen being
@@ -9398,6 +9416,7 @@ module AnalyticsEvents
   # @param [String, nil] doc_auth_result The doc auth result
   def user_registration_agency_handoff_page_visit(
     ial2:,
+    idv_resolution_stepdown:,
     service_provider_name:,
     page_occurence:,
     needs_completion_screen_reason:,
@@ -9412,6 +9431,7 @@ module AnalyticsEvents
       'User registration: agency handoff visited',
       ial2:,
       ialmax:,
+      idv_resolution_stepdown:,
       service_provider_name:,
       page_occurence:,
       needs_completion_screen_reason:,
@@ -9436,6 +9456,7 @@ module AnalyticsEvents
   # Tracks when user completes registration
   # @param [Boolean] ial2 Whether the user registration was for a verified identity
   # @param [Boolean] ialmax Whether the user registration was for an IALMax request
+  # @param [Boolean] idv_resolution_stepdown Whether the request stepped donw from IAL2 to auth-only
   # @param [String] service_provider_name The friendly name of the service provider
   # @param ['account-page','agency-page'] page_occurence Where the user concluded registration
   # @param [String] needs_completion_screen_reason The reason for the consent screen being
@@ -9447,6 +9468,7 @@ module AnalyticsEvents
   # @param [String, nil] doc_auth_result The doc auth result
   def user_registration_complete(
     ial2:,
+    idv_resolution_stepdown:,
     service_provider_name:,
     page_occurence:,
     in_account_creation_flow:,
@@ -9461,6 +9483,7 @@ module AnalyticsEvents
       'User registration: complete',
       ial2:,
       ialmax:,
+      idv_resolution_stepdown:,
       service_provider_name:,
       page_occurence:,
       in_account_creation_flow:,

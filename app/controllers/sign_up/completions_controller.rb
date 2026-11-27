@@ -4,6 +4,7 @@ module SignUp
   class CompletionsController < ApplicationController
     include SecureHeadersConcern
     include Idv::HistoricalAttemptsConcern
+    include IdvResolutionStepdownConcern
 
     before_action :confirm_two_factor_authenticated
     before_action :confirm_identity_verified, if: :identity_proofing_required?
@@ -78,11 +79,13 @@ module SignUp
     end
 
     def identity_proofing_required?
-      resolved_authn_context_result.identity_proofing?
+      resolved_authn_context_result.identity_proofing? && !request_has_stepped_down?
     end
 
     def idv_requested?
-      resolved_authn_context_result.identity_proofing_or_ialmax? && current_user.identity_verified?
+      (resolved_authn_context_result.identity_proofing_or_ialmax? &&
+        current_user.identity_verified?) ||
+        request_has_stepped_down?
     end
 
     def return_to_next_path
@@ -112,6 +115,7 @@ module SignUp
       attributes = {
         ial2: resolved_authn_context_result.identity_proofing?,
         ialmax: resolved_authn_context_result.ialmax?,
+        idv_resolution_stepdown: request_has_stepped_down?,
         service_provider_name: decorated_sp_session.sp_name,
         sp_session_requested_attributes: sp_session[:requested_attributes],
         page_occurence: page_occurence,
@@ -169,6 +173,10 @@ module SignUp
     end
 
     def pii
+      if request_has_stepped_down?
+        return idv_resolution_stepdown_pii
+      end
+
       Pii::Cacher.new(current_user, user_session).fetch(current_user.active_profile&.id) ||
         Pii::Attributes.new
     end

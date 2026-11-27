@@ -122,7 +122,11 @@ module Idv
         redirect_to address_warning_url
       elsif (failures.has_exception? && failures.threatmetrix_exception?) ||
             (!failures.has_exception? && failures.resolution_failed?)
+
         idv_failure_log_warning
+        if identity_resolution_stepdown_eligible?
+          return handle_identity_resolution_stepdown
+        end
         redirect_to warning_url
       elsif failures.has_exception?
         idv_failure_log_error
@@ -131,6 +135,28 @@ module Idv
         idv_failure_log_warning
         redirect_to warning_url
       end
+    end
+
+    def identity_resolution_stepdown_eligible?
+      resolved_authn_context_result.idv_resolution_stepdown_eligible?
+    end
+
+    def handle_identity_resolution_stepdown
+      user_session[:idv_resolution_stepdown] = {
+        issuer: current_sp.issuer,
+        encrypted_pii: SessionEncryptor.new.kms_encrypt(identity_resolution_stepdown_pii.to_json),
+      }
+
+      idv_session.clear
+
+      redirect_to sp_session_request_url_with_updated_params, allow_other_host: true
+    end
+
+    def identity_resolution_stepdown_pii
+      idv_session.pii_from_doc.to_h.merge(
+        ssn: idv_session.ssn,
+        **idv_session.updated_user_address.to_h,
+      ).compact_blank
     end
 
     def idv_failure_log_error
@@ -227,7 +253,11 @@ module Idv
             [:proofing_results, :biographical_info, :state_id_jurisdiction],
             [:proofing_results, :biographical_info, :phone],
             [:proofing_results, :biographical_info],
-          ],
+          ] + Proofing::Resolution::ResultAdjudicator.attempt_pii_keypaths(
+            [:resolution, :errors, :ssn],
+            [:resolution, :reason_codes],
+            [:residential_address, :errors, :ssn],
+          ),
         },
       )
 
