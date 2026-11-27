@@ -288,20 +288,54 @@ RSpec.describe VerifySpAttributesConcern do
                 expect(needs_completion_screen_reason).to be_nil
               end
             end
+          end
+        end
 
-            context 'when user has stepped down' do
-              let(:user_session) do
-                {
-                  idv_resolution_stepdown: {
-                    issuer: issuer,
-                    encrypted_pii: SessionEncryptor.new.kms_encrypt({ first_name: 'jane' }.to_json),
-                  },
-                }
-              end
+        # A stepped-down identity records only the authentication-level attributes as verified,
+        # so the identity attributes are approved by a consent given since the step-down.
+        context 'when the user has stepped down' do
+          let(:idv_resolution_stepdown_eligible) { true }
+          let(:requested_attributes) { %w[email given_name social_security_number verified_at] }
+          let(:verified_attributes) { %w[email] }
+          let(:stepped_down_at) { 10.minutes.ago.change(usec: 0) }
+          let(:stepdown) do
+            {
+              issuer:,
+              encrypted_pii: SessionEncryptor.new.kms_encrypt({ first_name: 'jane' }.to_json),
+              stepped_down_at: stepped_down_at.iso8601,
+            }
+          end
 
-              it 'is nil' do
-                expect(needs_completion_screen_reason).to be_nil
-              end
+          before do
+            allow(controller).to receive(:user_session)
+              .and_return(idv_resolution_stepdown: stepdown)
+            allow(controller).to receive(:current_sp)
+              .and_return(build(:service_provider, issuer:))
+          end
+
+          context 'when the user consented after stepping down' do
+            before { sp_session_identity.update!(last_consented_at: stepped_down_at + 1.minute) }
+
+            it 'is nil' do
+              expect(needs_completion_screen_reason).to be_nil
+            end
+          end
+
+          context 'when the user last consented before stepping down' do
+            before { sp_session_identity.update!(last_consented_at: stepped_down_at - 1.day) }
+
+            it 'is :new_attributes' do
+              expect(needs_completion_screen_reason).to eq(:new_attributes)
+            end
+          end
+
+          context 'when the stored step-down has no time' do
+            let(:stepdown) { super().except(:stepped_down_at) }
+
+            before { sp_session_identity.update!(last_consented_at: Time.zone.now) }
+
+            it 'is :new_attributes' do
+              expect(needs_completion_screen_reason).to eq(:new_attributes)
             end
           end
         end
