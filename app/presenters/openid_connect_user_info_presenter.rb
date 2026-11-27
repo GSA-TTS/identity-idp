@@ -103,7 +103,7 @@ class OpenidConnectUserInfoPresenter
   def document_images
     return {} unless proofing_data.document_artifacts.present?
 
-    proofing_data.document_artifacts.retained.order(:image_type)
+    proofing_data.document_artifacts.order(:image_type)
       .each_with_object({}) do |a, hash|
       hash[a.image_type.to_sym] = api_openid_connect_document_image_url(
         image_type: a.image_type,

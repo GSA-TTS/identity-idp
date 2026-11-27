@@ -172,6 +172,62 @@ RSpec.describe DocumentImagesForm do
         expect(response.extra).to include(image:, artifact:)
       end
 
+      it 'returns the artifact from the document capture session' do
+        expect(response).to be_success
+        expect(response.extra[:artifact].document_capture_session_id)
+          .to eq(document_capture_session.id)
+      end
+
+      context 'when the service provider is not allowlisted' do
+        before do
+          allow(IdentityConfig.store).to receive(:document_images_sharing_service_providers)
+            .and_return([])
+        end
+
+        it 'is invalid' do
+          expect(response).to_not be_success
+          expect(form.errors.details[:scope]).to include(
+            error: 'unauthorized_scope',
+            type: :unauthorized_scope,
+          )
+        end
+      end
+
+      context 'without biometric sharing consent' do
+        before do
+          identity.update!(biometric_sharing_consent_at: nil)
+        end
+
+        it 'is invalid' do
+          expect(response).to_not be_success
+          expect(form.errors.details[:scope]).to include(
+            error: 'not_consented_to',
+            type: :not_consented_to,
+          )
+        end
+      end
+
+      context 'without a matching document capture session' do
+        let(:document_capture_session) do
+          create(:document_capture_session, user:, issuer: 'urn:gov:gsa:openidconnect:other')
+        end
+
+        it 'is invalid' do
+          expect(response).to_not be_success
+          expect(form.errors.details[:artifact]).to include(error: 'not_found', type: :not_found)
+        end
+      end
+
+      context 'without an artifact for the requested type' do
+        let(:image_type) { 'back' }
+        let(:artifact_image_type) { 'front' }
+
+        it 'is invalid' do
+          expect(response).to_not be_success
+          expect(form.errors.details[:artifact]).to include(error: 'not_found', type: :not_found)
+        end
+      end
+
       context 'with stored stepdown data for another issuer' do
         before do
           OutOfBandSessionAccessor.new(identity.rails_session_id).put_idv_resolution_stepdown(

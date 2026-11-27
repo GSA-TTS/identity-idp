@@ -25,7 +25,7 @@ module OpenidConnect
 
     def document_metadata
       if stepdown?
-        metadata = document_capture_session.document_metadata
+        metadata = document_capture_session&.document_metadata
       else
         metadata = active_profile.document_metadata
       end
@@ -43,6 +43,14 @@ module OpenidConnect
 
     def stepdown?
       active_profile.blank? && stepdown_pii.present?
+    end
+
+    def consented?
+      if stepdown?
+        identity.biometric_sharing_consent_at.present?
+      else
+        identity.biometric_sharing_consented?(active_profile)
+      end
     end
 
     private
@@ -76,12 +84,12 @@ module OpenidConnect
     def profile_document_images_shareable?
       active_profile.present? &&
         identity.service_provider_record&.document_images_sharing_allowed? &&
-        identity.biometric_sharing_consented?(active_profile)
+        consented?
     end
 
     def stepdown_document_images_shareable?
       identity.service_provider_record&.document_images_sharing_allowed? &&
-        identity.biometric_sharing_consent_at.present? &&
+        consented? &&
         document_capture_session.present?
     end
   end

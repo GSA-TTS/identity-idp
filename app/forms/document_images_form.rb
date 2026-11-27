@@ -96,7 +96,7 @@ class DocumentImagesForm
       return
     end
 
-    unless verified_identity?
+    unless verified_identity? || proofing_data&.stepdown?
       errors.add(:acr_values, 'no_identity_verification', type: :no_identity_verification)
 
       return
@@ -108,7 +108,7 @@ class DocumentImagesForm
       return
     end
 
-    return if identity.biometric_sharing_consented?(active_profile)
+    return if proofing_data.consented?
 
     errors.add(:scope, 'not_consented_to', type: :not_consented_to)
   end
@@ -170,10 +170,17 @@ class DocumentImagesForm
   end
 
   def artifact
-    @artifact ||= active_profile&.document_artifacts&.retained&.find_by(image_type: image_type)
+    @artifact ||= proofing_data&.document_artifacts&.find_by(image_type: image_type)
   end
 
   def image
     @image ||= read_image(artifact)
+  end
+
+  def proofing_data
+    @proofing_data ||= OpenidConnect::ProofingData.new(
+      identity:,
+      session_accessor: OutOfBandSessionAccessor.new(identity.rails_session_id),
+    )
   end
 end
