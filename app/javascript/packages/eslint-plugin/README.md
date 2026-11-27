@@ -6,10 +6,10 @@ These configurations largely inherit from the [TTS JavaScript coding standards](
 
 ## Installation
 
-Install using [npm](https://www.npmjs.com/) or [Yarn](https://yarnpkg.com/). [ESLint](https://eslint.org/) and `eslint-plugin-import` are required as peer dependencies and should be installed if it is not already.
+Install using [npm](https://www.npmjs.com/) or [Yarn](https://yarnpkg.com/). [ESLint](https://eslint.org/) 8.57 or later is required as a peer dependency.
 
 ```
-npm install --save-dev @18f/eslint-plugin-identity eslint eslint-plugin-import
+npm install --save-dev @18f/eslint-plugin-identity eslint
 ```
 
 The configuration automatically includes additional behavior if any of the following packages are installed in your project:
@@ -21,16 +21,21 @@ The configuration automatically includes additional behavior if any of the follo
 
 ## Usage
 
-Currently, one configuration is made available for use: the `recommended` ruleset.
+This package publishes [flat configuration](https://eslint.org/docs/latest/use/configure/configuration-files) only (ESLint's `eslint.config.js` format). The legacy `.eslintrc` format is no longer supported as of v3.0.0.
 
-Because the module is published as an ESLint plugin, you should configure it as both a `plugins` and an `extends` in your [ESLint configuration](https://eslint.org/docs/user-guide/configuring/):
+Currently, one configuration is made available for use: the `recommended` ruleset. Spread it into your flat config array:
 
-```json
-{
-  "extends": ["plugin:@18f/eslint-plugin-identity/recommended"],
-  "plugins": ["@18f/eslint-plugin-identity"]
-}
+```js
+// eslint.config.js
+const identity = require('@18f/eslint-plugin-identity');
+
+module.exports = [
+  ...identity.configs.recommended,
+  // your own overrides...
+];
 ```
+
+The `recommended` config is an array of config objects. React, TypeScript, Mocha, and Prettier support is layered in automatically based on the peer dependencies detected in your project's `package.json`.
 
 ## Frequently Asked Questions
 
