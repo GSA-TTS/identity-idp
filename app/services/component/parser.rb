@@ -16,6 +16,7 @@ module Component
       :two_pieces_of_fair_evidence?,
       :ialmax?,
       :enhanced_ipp?,
+      :idv_resolution_stepdown_eligible?,
     ) do
       def self.no_sp_result
         self.new(
@@ -28,6 +29,7 @@ module Component
           two_pieces_of_fair_evidence?: false,
           ialmax?: false,
           enhanced_ipp?: false,
+          idv_resolution_stepdown_eligible?: false,
         )
       end
 
@@ -69,6 +71,7 @@ module Component
         two_pieces_of_fair_evidence?: requirement_list.include?(:two_pieces_of_fair_evidence),
         ialmax?: requirement_list.include?(:ialmax),
         enhanced_ipp?: requirement_list.include?(:enhanced_ipp),
+        idv_resolution_stepdown_eligible?: false,
       )
     end
 

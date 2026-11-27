@@ -35,6 +35,7 @@ class IdTokenBuilder
       .user_info
       .merge(id_token_claims)
       .merge(timestamp_claims)
+      .merge(idv_resolution_stepdown_claims)
   end
 
   def id_token_claims
@@ -45,6 +46,13 @@ class IdTokenBuilder
       jti: SecureRandom.urlsafe_base64,
       at_hash: hash_token(identity.access_token),
       c_hash: hash_token(code),
+    }
+  end
+
+  def idv_resolution_stepdown_claims
+    return {} unless resolved_authn_context.result_is_stepped_down?
+    {
+      identity_resolution: 'failed',
     }
   end
 

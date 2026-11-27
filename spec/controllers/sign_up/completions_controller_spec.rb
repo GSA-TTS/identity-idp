@@ -41,6 +41,7 @@ RSpec.describe SignUp::CompletionsController do
             'User registration: agency handoff visited',
             ial2: false,
             ialmax: false,
+            idv_resolution_stepdown: false,
             service_provider_name: subject.decorated_sp_session.sp_name,
             page_occurence: '',
             needs_completion_screen_reason: :new_sp,
@@ -120,6 +121,7 @@ RSpec.describe SignUp::CompletionsController do
             'User registration: agency handoff visited',
             ial2: true,
             ialmax: false,
+            idv_resolution_stepdown: false,
             service_provider_name: subject.decorated_sp_session.sp_name,
             page_occurence: '',
             needs_completion_screen_reason: :new_sp,
@@ -134,10 +136,84 @@ RSpec.describe SignUp::CompletionsController do
 
         context 'user is not identity verified' do
           let(:user) { create(:user) }
-          it 'redirects to idv_url' do
-            get :show
 
+          it 'redirects to idv_url' do
             expect(response).to redirect_to(idv_url)
+          end
+
+          context 'with stored identity resolution stepdown data' do
+            before do
+              allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
+                .and_return([current_sp.issuer])
+              subject.session[:sp][:acr_values] =
+                Saml::Idp::Constants::IAL_VERIFIED_FACIAL_MATCH_REQUIRED_ACR
+              controller.user_session[:idv_resolution_stepdown] = {
+                issuer: current_sp.issuer,
+                encrypted_pii: SessionEncryptor.new.kms_encrypt(
+                  { first_name: 'Jane' }.to_json,
+                ),
+              }
+              get :show
+            end
+
+            it 'renders the completion page' do
+              expect(response).to render_template(:show)
+            end
+
+            it 'creates a presenter object that is requesting idv' do
+              expect(assigns(:presenter).idv_requested?).to eq true
+            end
+
+            it 'uses the stepdown PII in the presenter' do
+              expect(assigns(:presenter).decrypted_pii.first_name).to eq('Jane')
+            end
+          end
+
+          context 'with stored identity resolution stepdown data for another issuer' do
+            before do
+              allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
+                .and_return([current_sp.issuer])
+              subject.session[:sp][:acr_values] =
+                Saml::Idp::Constants::IAL_VERIFIED_FACIAL_MATCH_REQUIRED_ACR
+              controller.user_session[:idv_resolution_stepdown] = {
+                issuer: 'urn:gov:gsa:openidconnect:other',
+                encrypted_pii: SessionEncryptor.new.kms_encrypt(
+                  { first_name: 'Jane' }.to_json,
+                ),
+              }
+              get :show
+            end
+
+            it 'renders the completions page' do
+              expect(response).to render_template(:show)
+            end
+
+            it 'does not have pii' do
+              expect(assigns(:presenter).decrypted_pii).to be nil
+            end
+          end
+
+          context 'with malformed identity resolution stepdown data' do
+            before do
+              allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
+                .and_return([current_sp.issuer])
+              subject.session[:sp][:acr_values] =
+                Saml::Idp::Constants::IAL2_BIO_REQUIRED_AUTHN_CONTEXT_CLASSREF
+              controller.user_session[:idv_resolution_stepdown] = {
+                issuer: current_sp.issuer,
+                encrypted_pii: nil,
+              }
+
+              get :show
+            end
+
+            it 'renders the completions page' do
+              expect(response).to render_template(:show)
+            end
+
+            it 'does not have pii' do
+              expect(assigns(:presenter).decrypted_pii).to be nil
+            end
           end
         end
       end
@@ -166,6 +242,7 @@ RSpec.describe SignUp::CompletionsController do
             'User registration: agency handoff visited',
             ial2: false,
             ialmax: true,
+            idv_resolution_stepdown: false,
             service_provider_name: subject.decorated_sp_session.sp_name,
             page_occurence: '',
             needs_completion_screen_reason: :new_sp,
@@ -269,6 +346,7 @@ RSpec.describe SignUp::CompletionsController do
           'User registration: complete',
           ial2: false,
           ialmax: false,
+          idv_resolution_stepdown: false,
           page_occurence: 'agency-page',
           service_provider_name: current_sp.friendly_name,
           needs_completion_screen_reason: :new_sp,
@@ -489,6 +567,7 @@ RSpec.describe SignUp::CompletionsController do
           'User registration: complete',
           ial2: true,
           ialmax: false,
+          idv_resolution_stepdown: false,
           service_provider_name: subject.decorated_sp_session.sp_name,
           page_occurence: 'agency-page',
           needs_completion_screen_reason: :new_sp,

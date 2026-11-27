@@ -79,8 +79,35 @@ RSpec.describe Idv::VerifyInfoController do
   end
 
   describe '#show' do
+    let(:idv_resolution_stepdown_sp) { create(:service_provider, :idv) }
+    let(:idv_resolution_stepdown_request_url) do
+      'http://test.host/openid_connect/authorize?' + {
+        client_id: idv_resolution_stepdown_sp.issuer,
+        redirect_uri: idv_resolution_stepdown_sp.redirect_uris.first,
+        response_type: 'code',
+        scope: 'openid profile social_security_number',
+        acr_values: Saml::Idp::Constants::IAL_VERIFIED_FACIAL_MATCH_REQUIRED_ACR,
+        state: SecureRandom.hex,
+        nonce: SecureRandom.hex,
+      }.to_query
+    end
+    let(:idv_resolution_stepdown_sp_session) do
+      {
+        issuer: idv_resolution_stepdown_sp.issuer,
+        acr_values: Saml::Idp::Constants::IAL_VERIFIED_FACIAL_MATCH_REQUIRED_ACR,
+        request_url: idv_resolution_stepdown_request_url,
+      }
+    end
+
     before do
       subject.idv_session.precheck_phone = { phone: '+1 703-555-5555' }
+    end
+
+    def stub_idv_resolution_stepdown_request
+      allow(controller).to receive(:sp_session).and_return(idv_resolution_stepdown_sp_session)
+      allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
+        .and_return([idv_resolution_stepdown_sp.issuer])
+      controller.idv_session.source_check_vendor = Idp::Constants::Vendors::AAMVA
     end
 
     it 'renders the show template' do
@@ -167,6 +194,18 @@ RSpec.describe Idv::VerifyInfoController do
 
         expect(@analytics).to have_logged_event('Rate Limit Reached', limiter_type: :proof_ssn)
       end
+
+      context 'with an identity resolution stepdown request' do
+        before { stub_idv_resolution_stepdown_request }
+
+        it 'does not store a stepdown payload' do
+          get :show
+
+          expect(response).to redirect_to idv_session_errors_ssn_failure_url
+          expect(@analytics).to have_logged_event('Rate Limit Reached', limiter_type: :proof_ssn)
+          expect(controller.user_session[:idv_resolution_stepdown]).to be_nil
+        end
+      end
     end
 
     context 'when the user is proofing rate limited' do
@@ -186,6 +225,21 @@ RSpec.describe Idv::VerifyInfoController do
         expect(response).to redirect_to idv_session_errors_failure_url
 
         expect(@analytics).to have_logged_event('Rate Limit Reached', limiter_type: :idv_resolution)
+      end
+
+      context 'with an identity resolution stepdown request' do
+        before { stub_idv_resolution_stepdown_request }
+
+        it 'redirects to rate limited url' do
+          get :show
+
+          expect(response).to redirect_to idv_session_errors_failure_url
+          expect(@analytics).to have_logged_event(
+            'Rate Limit Reached',
+            limiter_type: :idv_resolution,
+          )
+          expect(controller.user_session[:idv_resolution_stepdown]).to be_nil
+        end
       end
     end
 
@@ -1161,6 +1215,17 @@ RSpec.describe Idv::VerifyInfoController do
           put :show
           expect(response).to redirect_to idv_session_errors_exception_url
         end
+
+        context 'with an identity resolution stepdown request' do
+          before { stub_idv_resolution_stepdown_request }
+
+          it 'uses the normal exception redirect' do
+            get :show
+
+            expect(response).to redirect_to(idv_session_errors_exception_url)
+            expect(controller.user_session[:idv_resolution_stepdown]).to be_nil
+          end
+        end
       end
     end
 
@@ -1240,6 +1305,57 @@ RSpec.describe Idv::VerifyInfoController do
           remaining_submit_attempts: kind_of(Numeric),
         )
       end
+
+      context 'with an identity resolution stepdown request' do
+        before { stub_idv_resolution_stepdown_request }
+
+        it 'stores encrypted stepdown PII' do
+          get :show
+
+          stepdown = controller.user_session[:idv_resolution_stepdown]
+          decrypted_pii = JSON.parse(
+            SessionEncryptor.new.kms_decrypt(stepdown[:encrypted_pii]),
+            symbolize_names: true,
+          )
+
+          aggregate_failures do
+            expect(stepdown).to include(issuer: idv_resolution_stepdown_sp.issuer)
+            expect(stepdown).to have_key(:encrypted_pii)
+            expect(stepdown).not_to have_key(:pii)
+            expect(decrypted_pii).to include(
+              first_name: applicant_pii[:first_name],
+              last_name: applicant_pii[:last_name],
+              ssn: applicant_pii[:ssn],
+            )
+          end
+        end
+
+        it 'redirects back to authorize' do
+          get :show
+
+          expect(response).to redirect_to(idv_resolution_stepdown_request_url)
+        end
+
+        it 'clears the in-progress IdV session' do
+          get :show
+
+          expect(controller.idv_session.pii_from_doc).to be_nil
+        end
+      end
+
+      context 'when the request is not stepdown eligible' do
+        before do
+          allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
+            .and_return([])
+        end
+
+        it 'uses the normal warning redirect' do
+          get :show
+
+          expect(response).to redirect_to(idv_session_errors_warning_url)
+          expect(controller.user_session[:idv_resolution_stepdown]).to be_nil
+        end
+      end
     end
 
     context 'when the resolution proofing results is missing values' do
@@ -1284,6 +1400,8 @@ RSpec.describe Idv::VerifyInfoController do
       let(:document_capture_session) { create(:document_capture_session, user:) }
       let(:resolution_vendor_name) { 'ResolutionVendor' }
       let(:residential_resolution_vendor_name) { 'ResidentialResolutionVendor' }
+      let(:resolution_attempts) { nil }
+      let(:failover_available) { false }
       let(:adjudicated_result) do
         Proofing::Resolution::ResultAdjudicator.new(
           phone_result: Proofing::AddressResult.new(
@@ -1306,6 +1424,8 @@ RSpec.describe Idv::VerifyInfoController do
           ipp_current_address_matches_id: true,
           applicant_pii: Idp::Constants::MOCK_IDV_APPLICANT_WITH_SSN,
           precheck_phone_number: subject.idv_session.precheck_phone[:phone],
+          resolution_attempts:,
+          failover_available:,
         ).adjudicated_result
       end
 
@@ -1327,6 +1447,59 @@ RSpec.describe Idv::VerifyInfoController do
         expect(controller.idv_session.residential_resolution_vendor).to(
           eql(residential_resolution_vendor_name),
         )
+      end
+
+      context 'after resolution failover' do
+        let(:resolution_vendor_name) { 'socure_kyc' }
+        let(:failover_available) { true }
+        let(:resolution_attempts) do
+          {
+            instant_verify_ddp: {
+              resolution_result: Proofing::Resolution::Result.new(
+                success: false, vendor_name: 'lexisnexis:instant_verify_ddp',
+                errors: { ssn: ['Unverified SSN.'] }
+              ),
+              residential_resolution_result: Proofing::Resolution::Result.new(
+                success: true, vendor_name: residential_resolution_vendor_name,
+              ),
+            },
+            socure_kyc: {
+              resolution_result: Proofing::Resolution::Result.new(
+                success: true, vendor_name: 'socure_kyc',
+              ),
+              residential_resolution_result: Proofing::Resolution::Result.new(
+                success: true, vendor_name: residential_resolution_vendor_name,
+              ),
+            },
+          }
+        end
+
+        it 'saves the selected vendor and logs every attempt from encrypted storage' do
+          get :show
+
+          expect(controller.idv_session.resolution_vendor).to eq('socure_kyc')
+          expect(@analytics).to have_logged_event(
+            'IdV: doc auth verify proofing results',
+            hash_including(
+              proofing_results: hash_including(
+                context: hash_including(
+                  stages: hash_including(
+                    resolution: hash_including(
+                      vendor_name: 'socure_kyc',
+                      attempted_vendors: ['instant_verify_ddp', 'socure_kyc'],
+                      failover_available: true,
+                      failover_used: true,
+                      attempts: hash_including(
+                        instant_verify_ddp: hash_including(success: false),
+                        socure_kyc: hash_including(success: true),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          )
+        end
       end
     end
   end

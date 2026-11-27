@@ -16,6 +16,7 @@ class AuthnContextResolver
   end
 
   def asserted_ial_acr
+    return resolve_acr(Saml::Idp::Constants::IAL1_AUTHN_CONTEXT_CLASSREF) if result_is_stepped_down?
     return resolve_acr(Saml::Idp::Constants::IAL1_AUTHN_CONTEXT_CLASSREF) unless
       user&.identity_verified?
 
@@ -41,12 +42,18 @@ class AuthnContextResolver
     end
   end
 
+  def result_is_stepped_down?
+    result.idv_resolution_stepdown_eligible? && user&.active_profile.blank?
+  end
+
   private
 
   def acr_result_with_sp_defaults
-    result_with_sp_aal_defaults(
-      result_with_sp_ial_defaults(
-        acr_result_without_sp_defaults,
+    result_with_stepdown_eligibility(
+      result_with_sp_aal_defaults(
+        result_with_sp_ial_defaults(
+          acr_result_without_sp_defaults,
+        ),
       ),
     )
   end
@@ -89,6 +96,15 @@ class AuthnContextResolver
       result
     elsif service_provider&.identity_proofing_allowed?
       result.with(identity_proofing?: true, aal2?: true)
+    else
+      result
+    end
+  end
+
+  def result_with_stepdown_eligibility(result)
+    if service_provider&.idv_resolution_stepdown_allowed? &&
+       facial_match_is_required?(result)
+      result.with(idv_resolution_stepdown_eligible?: true)
     else
       result
     end

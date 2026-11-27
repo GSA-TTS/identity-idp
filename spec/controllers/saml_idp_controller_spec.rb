@@ -816,6 +816,7 @@ RSpec.describe SamlIdpController do
           billed_ial: Idp::Constants::IAL2,
           sign_in_flow:,
           acr_values: Saml::Idp::Constants::IAL2_AUTHN_CONTEXT_CLASSREF,
+          asserted_ial_acr: Saml::Idp::Constants::IAL2_AUTHN_CONTEXT_CLASSREF,
         )
       end
 
@@ -1008,6 +1009,7 @@ RSpec.describe SamlIdpController do
           billed_ial: 2,
           sign_in_flow:,
           acr_values: Saml::Idp::Constants::IALMAX_AUTHN_CONTEXT_CLASSREF,
+          asserted_ial_acr: Saml::Idp::Constants::IAL2_AUTHN_CONTEXT_CLASSREF,
         )
       end
 
@@ -3007,6 +3009,7 @@ RSpec.describe SamlIdpController do
             Saml::Idp::Constants::DEFAULT_AAL_AUTHN_CONTEXT_CLASSREF,
             Saml::Idp::Constants::IAL1_AUTHN_CONTEXT_CLASSREF,
           ].join(' '),
+          asserted_ial_acr: Saml::Idp::Constants::IAL1_AUTHN_CONTEXT_CLASSREF,
         )
       end
     end
@@ -3063,6 +3066,7 @@ RSpec.describe SamlIdpController do
             Saml::Idp::Constants::DEFAULT_AAL_AUTHN_CONTEXT_CLASSREF,
             Saml::Idp::Constants::IAL1_AUTHN_CONTEXT_CLASSREF,
           ].join(' '),
+          asserted_ial_acr: Saml::Idp::Constants::IAL1_AUTHN_CONTEXT_CLASSREF,
         )
       end
     end

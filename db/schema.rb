@@ -10,7 +10,11 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
+<<<<<<< HEAD
 ActiveRecord::Schema[8.1].define(version: 2026_11_09_154606) do
+=======
+ActiveRecord::Schema[8.1].define(version: 2026_11_27_151800) do
+>>>>>>> origin/LG-17854-acc-recovery-configuration-migrations
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -41,6 +45,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_154606) do
     t.string "failure_reason", comment: "sensitive=false"
     t.datetime "created_at", null: false, comment: "sensitive=false"
     t.datetime "updated_at", null: false, comment: "sensitive=false"
+    t.index ["state", "requested_at"], name: "index_account_recovery_requests_on_state_and_requested_at"
+    t.index ["token_fingerprint"], name: "index_account_recovery_requests_on_token_fingerprint", unique: true, where: "(token_fingerprint IS NOT NULL)"
     t.index ["user_id"], name: "index_account_recovery_requests_on_active_user_id", unique: true, where: "((completed_at IS NULL) AND (cancelled_at IS NULL) AND (expired_at IS NULL))"
     t.index ["user_id"], name: "index_account_recovery_requests_on_user_id"
   end

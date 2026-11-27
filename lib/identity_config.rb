@@ -151,6 +151,7 @@ module IdentityConfig
     config.add(:doc_auth_mock_dos_api, type: :boolean)
     config.add(:doc_auth_passports_enabled, type: :boolean)
     config.add(:doc_auth_passport_vendor_default, type: :string)
+    config.add(:doc_auth_passport_vendor_incode_percent, type: :integer)
     config.add(:doc_auth_passport_vendor_lexis_nexis_ddp_percent, type: :integer)
     config.add(:doc_auth_passport_vendor_lexis_nexis_percent, type: :integer)
     config.add(:doc_auth_passport_vendor_socure_percent, type: :integer)
@@ -172,6 +173,7 @@ module IdentityConfig
     config.add(:document_images_sharing_skip_doc_auth_post_validations, type: :boolean)
     config.add(:doc_auth_vendor, type: :string)
     config.add(:doc_auth_vendor_default, type: :string)
+    config.add(:doc_auth_vendor_incode_percent, type: :integer)
     config.add(:doc_auth_vendor_lexis_nexis_ddp_percent, type: :integer)
     config.add(:doc_auth_vendor_lexis_nexis_percent, type: :integer)
     config.add(:doc_auth_vendor_socure_percent, type: :integer)
@@ -294,6 +296,8 @@ module IdentityConfig
       type: :symbol,
       enum: [:instant_verify, :socure_kyc, :mock],
     )
+    config.add(:idv_resolution_failover_enabled_percent, type: :integer)
+    config.add(:idv_resolution_stepdown_allowed_issuer, type: :json)
     config.add(:idv_resolution_vendor_instant_verify_percent, type: :integer)
     config.add(:idv_resolution_vendor_instant_verify_ddp_percent, type: :integer)
     config.add(:idv_resolution_vendor_socure_kyc_percent, type: :integer)
