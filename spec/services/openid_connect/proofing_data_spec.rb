@@ -176,16 +176,18 @@ RSpec.describe OpenidConnect::ProofingData do
 
     context 'with identity resolution stepdown' do
       let(:profile) { nil }
+      let(:stepped_down_at) { 2.hours.ago }
       let(:document_capture_session) do
         create(:document_capture_session, user:, issuer:)
       end
 
       before do
-        identity.biometric_sharing_consent_at = Time.zone.now
+        identity.biometric_sharing_consent_at = 1.hour.ago
         writer_session_accessor.put_idv_resolution_stepdown(
           issuer:,
           pii: { first_name: 'Jane' },
           document_capture_session_uuid: document_capture_session.uuid,
+          stepped_down_at: stepped_down_at.iso8601,
           expiration: 5.minutes.in_seconds,
         )
       end
@@ -197,6 +199,16 @@ RSpec.describe OpenidConnect::ProofingData do
       context 'without biometric sharing consent' do
         before do
           identity.biometric_sharing_consent_at = nil
+        end
+
+        it 'returns false' do
+          expect(proofing_data.document_images_shareable?).to eq(false)
+        end
+      end
+
+      context 'with biometric sharing consent before stepdown' do
+        before do
+          identity.biometric_sharing_consent_at = 3.hours.ago
         end
 
         it 'returns false' do

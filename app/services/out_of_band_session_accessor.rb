@@ -60,6 +60,14 @@ class OutOfBandSessionAccessor
     data[:document_capture_session_uuid]
   end
 
+  def load_idv_stepdown_time(issuer:)
+    data = session_data.dig('warden.user.user.session', :idv_resolution_stepdown)
+    return if data.blank?
+    return if data[:issuer] != issuer
+
+    Time.zone.parse(data[:stepped_down_at].to_s) if data[:stepped_down_at].present?
+  end
+
   # @return [String, nil]
   def load_web_locale
     session_data.dig('warden.user.user.session', :web_locale)
@@ -109,12 +117,13 @@ class OutOfBandSessionAccessor
   # @param [#to_s] document_capture_session_uuid
   # @param [#to_s] issuer string
   def put_idv_resolution_stepdown(issuer:, document_capture_session_uuid:, pii:,
-                                  expiration: 5.minutes)
+                                  expiration: 5.minutes, stepped_down_at: Time.zone.now)
     data = {
       idv_resolution_stepdown: {
         issuer:,
         encrypted_pii: SessionEncryptor.new.kms_encrypt(pii.to_h.to_json),
         document_capture_session_uuid:,
+        stepped_down_at:,
       },
     }
 

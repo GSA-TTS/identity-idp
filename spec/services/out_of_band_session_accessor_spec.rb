@@ -139,6 +139,37 @@ RSpec.describe OutOfBandSessionAccessor do
     end
   end
 
+  describe '#load_idv_stepdown_time' do
+    let(:issuer) { 'urn:gov:gsa:openidconnect:test' }
+    let(:other_issuer) { 'urn:gov:gsa:openidconnect:other' }
+    let(:stepdown_pii) { { first_name: 'Jane' } }
+    let(:stepped_down_at) { Time.zone.parse('2026-11-27 12:00:00 UTC') }
+
+    it 'loads the stepdown time' do
+      writer_instance.put_idv_resolution_stepdown(
+        issuer:,
+        pii: stepdown_pii,
+        document_capture_session_uuid:,
+        stepped_down_at: stepped_down_at.iso8601,
+        expiration: 5.minutes.in_seconds,
+      )
+
+      expect(store.load_idv_stepdown_time(issuer:)).to eq(stepped_down_at)
+    end
+
+    it 'does not load the stepdown time for another issuer' do
+      writer_instance.put_idv_resolution_stepdown(
+        issuer:,
+        pii: stepdown_pii,
+        document_capture_session_uuid:,
+        stepped_down_at: stepped_down_at.iso8601,
+        expiration: 5.minutes.in_seconds,
+      )
+
+      expect(store.load_idv_stepdown_time(issuer: other_issuer)).to be_nil
+    end
+  end
+
   describe '#load_stepdown_document_capture_session_uuid' do
     let(:issuer) { 'urn:gov:gsa:openidconnect:test' }
     let(:other_issuer) { 'urn:gov:gsa:openidconnect:other' }

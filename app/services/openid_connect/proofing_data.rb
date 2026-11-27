@@ -46,11 +46,7 @@ module OpenidConnect
     end
 
     def consented?
-      if stepdown?
-        identity.biometric_sharing_consent_at.present?
-      else
-        identity.biometric_sharing_consented?(active_profile)
-      end
+      identity.biometric_sharing_consented?(active_profile:, stepped_down_at:)
     end
 
     private
@@ -67,6 +63,12 @@ module OpenidConnect
 
     def stepdown_pii
       @stepdown_pii ||= session_accessor.load_idv_resolution_stepdown_pii(
+        issuer: identity.service_provider,
+      )
+    end
+
+    def stepped_down_at
+      @stepped_down_at ||= session_accessor.load_idv_stepdown_time(
         issuer: identity.service_provider,
       )
     end

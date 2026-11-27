@@ -88,7 +88,7 @@ module VerifySpAttributesConcern
     active_profile = current_user&.active_profile
     return false if active_profile&.verified_at.blank?
 
-    !sp_session_identity.biometric_sharing_consented?(active_profile)
+    !sp_session_identity.biometric_sharing_consented?(active_profile:)
   end
 
   def consent_has_expired?(sp_session_identity)
