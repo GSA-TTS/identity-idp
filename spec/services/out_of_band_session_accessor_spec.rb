@@ -3,6 +3,7 @@ require 'rails_helper'
 RSpec.describe OutOfBandSessionAccessor do
   let(:session_uuid) { SecureRandom.uuid }
   let(:profile_id) { 123 }
+  let(:document_capture_session_uuid) { SecureRandom.uuid }
 
   # This test uses a separate writer instance to write test data to the session store.
   # The OutOfBandSessionAccessor memoizes the data that it reads from the session.
@@ -73,6 +74,7 @@ RSpec.describe OutOfBandSessionAccessor do
         issuer:,
         pii: stepdown_pii,
         expiration: 5.minutes.in_seconds,
+        document_capture_session_uuid:,
       )
 
       stepdown = store.load_idv_resolution_stepdown_pii(issuer:)
@@ -88,6 +90,7 @@ RSpec.describe OutOfBandSessionAccessor do
       writer_instance.put_idv_resolution_stepdown(
         issuer:,
         pii: stepdown_pii,
+        document_capture_session_uuid:,
         expiration: 5.minutes.in_seconds,
       )
 
@@ -123,6 +126,7 @@ RSpec.describe OutOfBandSessionAccessor do
         issuer:,
         pii: stepdown_pii,
         expiration: 5.minutes.in_seconds,
+        document_capture_session_uuid:,
       )
 
       expect(store.load_idv_resolution_stepdown_pii(issuer: other_issuer)).to be_nil
@@ -132,6 +136,73 @@ RSpec.describe OutOfBandSessionAccessor do
       writer_instance.put_locale('en')
 
       expect(store.load_idv_resolution_stepdown_pii(issuer:)).to be_nil
+    end
+  end
+
+  describe '#load_idv_stepdown_time' do
+    let(:issuer) { 'urn:gov:gsa:openidconnect:test' }
+    let(:other_issuer) { 'urn:gov:gsa:openidconnect:other' }
+    let(:stepdown_pii) { { first_name: 'Jane' } }
+    let(:stepped_down_at) { Time.zone.parse('2026-11-27 12:00:00 UTC') }
+
+    it 'loads the stepdown time' do
+      writer_instance.put_idv_resolution_stepdown(
+        issuer:,
+        pii: stepdown_pii,
+        document_capture_session_uuid:,
+        stepped_down_at: stepped_down_at.iso8601,
+        expiration: 5.minutes.in_seconds,
+      )
+
+      expect(store.load_idv_stepdown_time(issuer:)).to eq(stepped_down_at)
+    end
+
+    it 'does not load the stepdown time for another issuer' do
+      writer_instance.put_idv_resolution_stepdown(
+        issuer:,
+        pii: stepdown_pii,
+        document_capture_session_uuid:,
+        stepped_down_at: stepped_down_at.iso8601,
+        expiration: 5.minutes.in_seconds,
+      )
+
+      expect(store.load_idv_stepdown_time(issuer: other_issuer)).to be_nil
+    end
+  end
+
+  describe '#load_stepdown_document_capture_session_uuid' do
+    let(:issuer) { 'urn:gov:gsa:openidconnect:test' }
+    let(:other_issuer) { 'urn:gov:gsa:openidconnect:other' }
+    let(:stepdown_pii) { { first_name: 'Jane' } }
+
+    it 'loads the stepdown document capture session uuid' do
+      writer_instance.put_idv_resolution_stepdown(
+        issuer:,
+        pii: stepdown_pii,
+        document_capture_session_uuid:,
+        expiration: 5.minutes.in_seconds,
+      )
+
+      expect(store.load_stepdown_document_capture_session_uuid(issuer:))
+        .to eq(document_capture_session_uuid)
+    end
+
+    it 'does not load the uuid for another issuer' do
+      writer_instance.put_idv_resolution_stepdown(
+        issuer:,
+        pii: stepdown_pii,
+        document_capture_session_uuid:,
+        expiration: 5.minutes.in_seconds,
+      )
+
+      expect(store.load_stepdown_document_capture_session_uuid(issuer: other_issuer))
+        .to be_nil
+    end
+
+    it 'does not load the uuid without a stored handoff' do
+      writer_instance.put_locale('en')
+
+      expect(store.load_stepdown_document_capture_session_uuid(issuer:)).to be_nil
     end
   end
 

@@ -22,15 +22,14 @@ class OpenidConnectUserInfoPresenter
     info[:all_emails] = all_emails_from_sp_identity(identity) if scoper.all_emails_requested?
     info[:locale] = web_locale if scoper.locale_requested?
 
-    if identity_proofing_requested_for_verified_user?
+    if identity_proofing_requested_for_verified_or_stepped_down_user?
       info.merge!(ial2_attributes)
-    elsif stepdown_ial2_attributes_available?
-      info.merge!(stepdown_ial2_attributes)
     end
 
-    if scoper.document_images_requested? && document_images_shareable?
+    if scoper.document_images_requested? && proofing_data.document_images_shareable? &&
+       resolved_authn_context_result.identity_proofing?
       info[:document_images] = document_images
-      info[:document_metadata] = document_metadata
+      info[:document_metadata] = proofing_data.document_metadata
     end
     info.merge!(x509_attributes) if scoper.x509_scopes_requested?
     info[:verified_at] = verified_at if scoper.verified_at_requested?
@@ -84,17 +83,11 @@ class OpenidConnectUserInfoPresenter
       address: address,
       phone: phone,
       phone_verified: phone.present? || nil,
-    }
+    }.merge(stepdown_attr)
   end
 
-  def stepdown_ial2_attributes
-    issuer = identity&.service_provider_record&.issuer
-    return Pii::Attributes.new_from_hash({}) unless issuer
-
-    @ial2_data = out_of_band_session_accessor.load_idv_resolution_stepdown_pii(issuer:) ||
-                 Pii::Attributes.new_from_hash({})
-
-    ial2_attributes.merge({ identity_resolution: 'failed' }).compact
+  def stepdown_attr
+    proofing_data.stepdown? ? { identity_resolution: 'failed' } : {}
   end
 
   def x509_attributes
@@ -105,38 +98,24 @@ class OpenidConnectUserInfoPresenter
     }
   end
 
-  # Signed-in RP fetches each URL with the same bearer access token; the proxy
-  # endpoint enforces scope + ownership. mDL profiles have no artifacts.
   # Only released when the SP is allow-listed and the user granted biometric
   # sharing consent on the agency handoff screen.
   def document_images
-    return @document_images if defined?(@document_images)
+    return {} unless proofing_data.document_artifacts.present?
 
-    @document_images =
-      if document_images_shareable?
-        active_profile.document_artifacts.retained.order(:image_type)
-          .each_with_object({}) do |a, hash|
-          hash[a.image_type.to_sym] = api_openid_connect_document_image_url(
-            image_type: a.image_type,
-          )
-        end
-      else
-        {}
-      end
+    proofing_data.document_artifacts.order(:image_type)
+      .each_with_object({}) do |a, hash|
+      hash[a.image_type.to_sym] = api_openid_connect_document_image_url(
+        image_type: a.image_type,
+      )
+    end
   end
 
-  def document_images_shareable?
-    active_profile.present? &&
-      resolved_authn_context_result.identity_proofing? &&
-      identity.service_provider_record&.document_images_sharing_allowed? &&
-      identity.biometric_sharing_consented?(active_profile)
-  end
-
-  def document_metadata
-    return {} unless document_images_shareable?
-
-    metadata = active_profile.document_metadata
-    metadata&.retained? ? metadata.document_data : {}
+  def proofing_data
+    @proofing_data ||= OpenidConnect::ProofingData.new(
+      identity:,
+      session_accessor: out_of_band_session_accessor,
+    )
   end
 
   def phone
@@ -182,12 +161,12 @@ class OpenidConnectUserInfoPresenter
   end
 
   def ial2_data
-    @ial2_data ||= out_of_band_session_accessor.load_pii(active_profile.id) ||
-                   Pii::Attributes.new_from_hash({})
+    @ial2_data ||= proofing_data.pii
   end
 
-  def identity_proofing_requested_for_verified_user?
-    return false unless active_profile.present?
+  def identity_proofing_requested_for_verified_or_stepped_down_user?
+    return false unless proofing_data.available?
+
     resolved_authn_context_result.identity_proofing? || resolved_authn_context_result.ialmax?
   end
 

@@ -327,6 +327,7 @@ RSpec.describe OpenidConnectUserInfoPresenter do
             zipcode: '20001-1234',
           )
         end
+        let(:document_capture_session) { create(:document_capture_session) }
         before do
           allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
             .and_return([service_provider.issuer])
@@ -335,6 +336,7 @@ RSpec.describe OpenidConnectUserInfoPresenter do
               issuer: service_provider.issuer,
               pii: stepdown_pii,
               expiration: 5.minutes.in_seconds,
+              document_capture_session_uuid: document_capture_session.uuid,
             )
           end
         end
@@ -405,6 +407,7 @@ RSpec.describe OpenidConnectUserInfoPresenter do
               issuer: 'urn:gov:gsa:openidconnect:other',
               pii: stepdown_pii,
               expiration: 5.minutes.in_seconds,
+              document_capture_session_uuid: 'whatever',
             )
           end
 
@@ -553,7 +556,7 @@ RSpec.describe OpenidConnectUserInfoPresenter do
         allow(IdentityConfig.store).to receive(:document_images_sharing_enabled).and_return(true)
         allow(IdentityConfig.store).to receive(:document_images_sharing_service_providers)
           .and_return([service_provider.issuer])
-        identity.biometric_sharing_consent_at = profile.verified_at + 1.second
+        identity.biometric_sharing_consent_at = profile.verified_at + 1.second if profile
       end
 
       context 'when sharing is authorized and the profile has stored artifacts' do
@@ -636,6 +639,58 @@ RSpec.describe OpenidConnectUserInfoPresenter do
 
         it 'omits the document_metadata claim' do
           expect(user_info).not_to have_key(:document_metadata)
+        end
+      end
+
+      context 'with identity resolution stepdown' do
+        let(:pii) { nil }
+        let(:profile) { nil }
+        let(:scope) { 'openid document_images profile social_security_number' }
+        let(:acr_values) { Saml::Idp::Constants::IAL_VERIFIED_FACIAL_MATCH_REQUIRED_ACR }
+        let(:document_capture_session) do
+          create(:document_capture_session, user: identity.user, issuer: service_provider.issuer)
+        end
+
+        before do
+          identity.biometric_sharing_consent_at = Time.zone.now
+          allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
+            .and_return([service_provider.issuer])
+          OutOfBandSessionAccessor.new(rails_session_id).put_idv_resolution_stepdown(
+            issuer: service_provider.issuer,
+            pii: Pii::Attributes.new_from_hash(first_name: 'Jane', ssn: '666661234'),
+            document_capture_session_uuid: document_capture_session.uuid,
+            expiration: 5.minutes.in_seconds,
+          )
+          create(
+            :document_artifact,
+            document_capture_session:,
+            image_type: 'front',
+          )
+          create(
+            :document_metadata,
+            document_capture_session:,
+            document_data: {
+              document_number: 'D-5',
+              document_issued: '2020-03-03',
+              document_expiration: '2030-03-03',
+              document_jurisdiction: 'WA',
+            },
+          )
+        end
+
+        it 'returns document image URLs from the document capture session' do
+          expect(user_info[:document_images]).to eq(
+            front: api_openid_connect_document_image_url(image_type: 'front'),
+          )
+        end
+
+        it 'returns document metadata from the document capture session' do
+          expect(user_info[:document_metadata]).to eq(
+            document_number: 'D-5',
+            document_issued: '2020-03-03',
+            document_expiration: '2030-03-03',
+            document_jurisdiction: 'WA',
+          )
         end
       end
 
