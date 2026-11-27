@@ -140,6 +140,58 @@ RSpec.describe DocumentImagesForm do
       end
     end
 
+    context 'with identity resolution stepdown' do
+      let(:profile) { nil }
+      let(:acr_values) { Saml::Idp::Constants::IAL_AUTH_ONLY_ACR }
+      let(:document_capture_session) do
+        create(:document_capture_session, user:, issuer: identity.service_provider)
+      end
+      let!(:artifact) do
+        create(
+          :document_artifact,
+          document_capture_session:,
+          image_type: artifact_image_type,
+          storage_name:,
+          encryption_key:,
+        )
+      end
+
+      before do
+        allow(IdentityConfig.store).to receive(:idv_resolution_stepdown_allowed_issuer)
+          .and_return([identity.service_provider])
+        OutOfBandSessionAccessor.new(identity.rails_session_id).put_idv_resolution_stepdown(
+          issuer: identity.service_provider,
+          pii: Pii::Attributes.new_from_hash(first_name: 'Jane'),
+          document_capture_session_uuid: document_capture_session.uuid,
+          expiration: 5.minutes.in_seconds,
+        )
+      end
+
+      it 'returns the image and artifact' do
+        expect(response).to be_success
+        expect(response.extra).to include(image:, artifact:)
+      end
+
+      context 'with stored stepdown data for another issuer' do
+        before do
+          OutOfBandSessionAccessor.new(identity.rails_session_id).put_idv_resolution_stepdown(
+            issuer: 'urn:gov:gsa:openidconnect:other',
+            pii: Pii::Attributes.new_from_hash(first_name: 'Jane'),
+            document_capture_session_uuid: document_capture_session.uuid,
+            expiration: 5.minutes.in_seconds,
+          )
+        end
+
+        it 'is invalid' do
+          expect(response).to_not be_success
+          expect(form.errors.details[:acr_values]).to include(
+            error: 'no_identity_verification',
+            type: :no_identity_verification,
+          )
+        end
+      end
+    end
+
     context 'when the service provider is not allow-listed for sharing' do
       before do
         allow(IdentityConfig.store).to receive(:document_images_sharing_service_providers)

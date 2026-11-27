@@ -51,6 +51,15 @@ class OutOfBandSessionAccessor
     Pii::Attributes.new_from_hash(JSON.parse(pii_json, symbolize_names: true))
   end
 
+  def load_stepdown_document_capture_session_uuid(issuer:)
+    data = session_data.dig('warden.user.user.session', :idv_resolution_stepdown)
+
+    return if data.blank?
+    return if data[:issuer] != issuer
+
+    data[:document_capture_session_uuid]
+  end
+
   # @return [String, nil]
   def load_web_locale
     session_data.dig('warden.user.user.session', :web_locale)
@@ -97,12 +106,15 @@ class OutOfBandSessionAccessor
   # @api private
   # Only used for convenience in tests
   # @param [Pii::Attributes] pii
+  # @param [#to_s] document_capture_session_uuid
   # @param [#to_s] issuer string
-  def put_idv_resolution_stepdown(issuer:, pii:, expiration: 5.minutes)
+  def put_idv_resolution_stepdown(issuer:, document_capture_session_uuid:, pii:,
+                                  expiration: 5.minutes)
     data = {
       idv_resolution_stepdown: {
         issuer:,
         encrypted_pii: SessionEncryptor.new.kms_encrypt(pii.to_h.to_json),
+        document_capture_session_uuid:,
       },
     }
 
