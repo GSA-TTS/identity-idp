@@ -375,22 +375,42 @@ RSpec.describe ServiceProviderIdentity do
         let(:consent_at) { 1.hour.ago }
         let(:verified_at) { 2.hours.ago }
 
-        it { expect(identity.biometric_sharing_consented?(profile)).to eq(true) }
+        it { expect(identity.biometric_sharing_consented?(active_profile: profile)).to eq(true) }
       end
 
       context 'and the user re-proofed after consenting' do
         let(:consent_at) { 2.hours.ago }
         let(:verified_at) { 1.hour.ago }
 
-        it { expect(identity.biometric_sharing_consented?(profile)).to eq(false) }
+        it { expect(identity.biometric_sharing_consented?(active_profile: profile)).to eq(false) }
       end
 
       context 'and the profile has no verified_at' do
         let(:consent_at) { 1.hour.ago }
         let(:verified_at) { nil }
 
-        it 'fails closed' do
-          expect(identity.biometric_sharing_consented?(profile)).to eq(false)
+        it 'returns false' do
+          expect(identity.biometric_sharing_consented?(active_profile: profile)).to eq(false)
+        end
+      end
+    end
+
+    context 'when a stepdown time is provided' do
+      let(:stepped_down_at) { 2.hours.ago }
+
+      context 'and consent post-dates the stepdown' do
+        let(:consent_at) { 1.hour.ago }
+
+        it 'returns true' do
+          expect(identity.biometric_sharing_consented?(stepped_down_at:)).to eq(true)
+        end
+      end
+
+      context 'and consent pre-dates the stepdown' do
+        let(:consent_at) { 3.hours.ago }
+
+        it 'returns false' do
+          expect(identity.biometric_sharing_consented?(stepped_down_at:)).to eq(false)
         end
       end
     end

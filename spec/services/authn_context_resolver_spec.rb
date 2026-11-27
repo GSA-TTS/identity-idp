@@ -743,7 +743,7 @@ RSpec.describe AuthnContextResolver do
                 end
               end
 
-              context 'that was not intiated by a different service provider' do
+              context 'that was not initiated by a different service provider' do
                 let(:sp2) { build(:service_provider, ial: 2) }
                 before do
                   create(:profile, :active, user:, initiating_service_provider: sp2)

@@ -148,6 +148,7 @@ module Idv
         # The consent the person gives on the next screen must be newer than this, so an older
         # consent to the same service provider never approves the stepped-down attributes.
         stepped_down_at: Time.zone.now.iso8601,
+        document_capture_session_uuid: idv_session.document_capture_session_uuid,
       }
 
       idv_session.clear
