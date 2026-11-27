@@ -98,6 +98,24 @@ RSpec.describe AccountRecoveryRequest do
       end
     end
 
+    # Password verification suspends the user's existing MFA under the request,
+    # so ending it any way other than completion would strand those methods.
+    it 'refuses to cancel or expire a request once the password is verified' do
+      %i[password_verified replacement_mfa_pending].each do |trait|
+        request = create(:account_recovery_request, trait, user: create(:user))
+        state = request.state
+
+        expect(request.cancel!(reason: AccountRecoveryRequest::CANCEL_REASON_USER_CANCELLED))
+          .to eq(false), state
+        expect(request.expire!).to eq(false), state
+
+        request.reload
+        expect(request.state).to eq(state)
+        expect(request.cancelled_at).to be_nil
+        expect(request.expired_at).to be_nil
+      end
+    end
+
     it 'only permits the transitions listed in the state machine' do
       AccountRecoveryRequest::TRANSITIONS.each do |from_state, allowed_states|
         AccountRecoveryRequest::STATES.each do |to_state|

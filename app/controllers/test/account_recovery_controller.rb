@@ -32,7 +32,9 @@ module Test
       recovery_request = find_request
       return render_not_found if recovery_request.blank?
 
-      recovery_request.cancel!(reason: 'test')
+      if !recovery_request.cancel!(reason: 'test')
+        flash[:error] = "Could not cancel request in state #{recovery_request.state}"
+      end
 
       redirect_to test_account_recovery_url
     end
@@ -41,7 +43,9 @@ module Test
       recovery_request = find_request
       return render_not_found if recovery_request.blank?
 
-      recovery_request.expire!(reason: 'test')
+      if !recovery_request.expire!(reason: 'test')
+        flash[:error] = "Could not expire request in state #{recovery_request.state}"
+      end
 
       redirect_to test_account_recovery_url
     end

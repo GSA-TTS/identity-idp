@@ -538,12 +538,15 @@ RSpec.describe AccountRecovery::VerifyController do
       expect(controller.user_session[TwoFactorAuthenticatable::NEED_AUTHENTICATION]).to eq(true)
     end
 
-    it 'does not continue a request that was subsequently expired' do
+    it 'does not continue a request that was subsequently completed' do
       post :create, params: password_params
-      recovery_request.reload.expire!
+      AccountRecovery::CompleteReplacementMfa.new(
+        account_recovery_request: recovery_request.reload,
+      ).call
 
       get :show
 
+      expect(recovery_request.reload.state).to eq(AccountRecoveryRequest::COMPLETED)
       expect(response).to render_template('pages/page_not_found')
     end
   end
